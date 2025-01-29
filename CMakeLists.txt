@@ -6,8 +6,9 @@ project(${PROJECT_NAME} LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(OpenGL REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
 # Add executable
 add_executable(${PROJECT_NAME})
@@ -23,8 +24,9 @@ target_include_directories(${PROJECT_NAME}
 # Link libraries
 target_link_libraries(${PROJECT_NAME} 
     PRIVATE
-        glad
-        glfw
         d3d11.lib
         dxgi.lib
+        glad
+        glfw
+        spdlog::spdlog
 )

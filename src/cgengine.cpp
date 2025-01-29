@@ -1,6 +1,6 @@
 #include "cgengine.h"
 
-#include "renderer/renderer.h"
+#include "core/logger.hpp"
 
 // cgengine.cpp
 namespace cgengine
@@ -9,6 +9,8 @@ namespace cgengine
 
 	CGEngine::CGEngine(const CGEngineCreateInfo& info)
 	{
+		core::CGLogger::Init();
+
 		switch (info.type)
 		{
 		case CGRendererType::None:
