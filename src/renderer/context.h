@@ -4,7 +4,6 @@
 #include <functional>
 
 // context.h
-
 namespace cgengine
 {
 	enum class CGRendererType : uint32_t;

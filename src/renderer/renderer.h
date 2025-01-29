@@ -7,7 +7,6 @@
 #include "context.h"
 
 // renderer.h
-
 namespace cgengine::renderer
 {
 	enum class CGClearFlags : uint32_t
@@ -24,9 +23,16 @@ namespace cgengine::renderer
 		std::function<void(float, float, float, float)> ClearColor;
 	};
 
-	struct CGRenderer
+	class CGRenderer
 	{
-		CGRenderFunctions api;
+	public:
+		void Clear(CGClearFlags flags) const;
+		void ClearColor(float r, float g, float b, float a = 1.0f) const;
+		void ClearColor(uint32_t color) const;
+
+		void SetRenderFunctions(const CGRenderFunctions& renderFunctions) { m_api = renderFunctions; }
+	private:
+		CGRenderFunctions m_api;
 	};
 
 	void SetupOpenGLFunctions(CGRenderer& renderer);

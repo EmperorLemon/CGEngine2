@@ -6,7 +6,6 @@
 #include "platform/window.h"
 
 // context_opengl.cpp
-
 namespace cgengine::renderer
 {
 	void OpenGLInit(CGRenderContext& context)

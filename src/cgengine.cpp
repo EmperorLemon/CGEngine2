@@ -3,7 +3,6 @@
 #include "renderer/renderer.h"
 
 // cgengine.cpp
-
 namespace cgengine
 {
 	static constexpr int32_t cast(uint32_t value) { return static_cast<int32_t>(value); }

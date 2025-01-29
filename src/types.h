@@ -3,7 +3,6 @@
 #include <cstdint>
 
 // types.h
-
 namespace cgengine
 {
 	enum class CGRendererType : uint32_t

@@ -4,7 +4,6 @@
 #include "renderer.h"
 
 // renderer_opengl.cpp
-
 namespace cgengine::renderer
 {
 	static GLbitfield MapClearFlags(const CGClearFlags flags)
@@ -25,24 +24,18 @@ namespace cgengine::renderer
 
 	void SetupOpenGLFunctions(CGRenderer& renderer)
 	{
-		renderer.api.Clear = [](const CGClearFlags flags)
+		CGRenderFunctions renderFunctions;
+
+		renderFunctions.Clear = [](const CGClearFlags flags)
 			{
 				glClear(MapClearFlags(flags));
 			};
 
-		renderer.api.ClearColor = [](const float r, const float g, const float b, const float a)
+		renderFunctions.ClearColor = [](const float r, const float g, const float b, const float a)
 			{
 				glClearColor(r, g, b, a);
 			};
+
+		renderer.SetRenderFunctions(renderFunctions);
 	}
-
-	//void ClearColor(uint32_t color)
-	//{
-	//	float r = ((color >> 24) & 0xFF) / 255.0f;
-	//	float g = ((color >> 16) & 0xFF) / 255.0f;
-	//	float b = ((color >> 8) & 0xFF) / 255.0f;
-	//	float a = (color & 0xFF) / 255.0f;
-
-	//	glClearColor(r, g, b, a);
-	//}
 }

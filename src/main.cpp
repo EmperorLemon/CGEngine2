@@ -8,7 +8,6 @@ constexpr int WINDOW_WIDTH = 800;
 constexpr int WINDOW_HEIGHT = 600;
 
 // main.cpp
-
 int main(int argc, char* argv[])
 {
     cgengine::CGEngineCreateInfo info;
@@ -20,15 +19,16 @@ int main(int argc, char* argv[])
     cgengine::CGEngine engine(info);
 
     const auto& renderer = engine.GetRenderer();
+    const auto& context = engine.GetContext();
 
     while (engine.IsRunning())
     {
         cgengine::PollEvents();
 
-        renderer.api.Clear(cgengine::renderer::CGClearFlags::Color);
-        renderer.api.ClearColor(0.5f, 0.2f, 0.6f, 0.5f);
+        renderer.ClearColor(0.5f, 0.2f, 0.6f, 1);
+        renderer.Clear(cgengine::renderer::CGClearFlags::Color);
 
-        engine.GetContext().SwapBuffers();
+        context.SwapBuffers();
     }
 
     return EXIT_SUCCESS;
