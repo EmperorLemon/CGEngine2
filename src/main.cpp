@@ -11,7 +11,7 @@ constexpr int WINDOW_HEIGHT = 600;
 int main(int argc, char* argv[])
 {
     cg::CGEngineCreateInfo info;
-    info.type = cg::CGRendererType::Direct3D11;
+    info.type = cg::CGRendererType::OpenGL;
     info.resolution.width = WINDOW_WIDTH;
     info.resolution.height = WINDOW_HEIGHT;
     info.debug = true;
@@ -21,11 +21,11 @@ int main(int argc, char* argv[])
     const auto& renderer = engine.GetRenderer();
     const auto& context = engine.GetContext();
 
-    renderer.ClearView(CG_CLEAR_COLOR, 0xFF0000FF);
-
     while (engine.IsRunning())
     {
         cg::PollEvents();
+        
+        renderer.ClearView(CG_CLEAR_COLOR, 0xFF0000FF);
 
         context.Present();
     }

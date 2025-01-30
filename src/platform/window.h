@@ -27,7 +27,7 @@ namespace cg
 		};
 	}
 
-	bool CreateCGWindow(CGRendererType type, bool debug, int32_t width, int32_t height, const char* title, core::CGWindow& window);
+	bool CreateCGWindow(int32_t width, int32_t height, const char* title, core::CGWindow& window);
 	void DestroyCGWindow(void* winptr);
 
 	void PollEvents();

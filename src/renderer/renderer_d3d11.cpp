@@ -11,16 +11,16 @@ namespace cg::renderer
 
 		CGRenderAPIFunctions renderAPIFunctions;
 
-		renderAPIFunctions.ClearColor = 
+		renderAPIFunctions.ClearColor =
 			[deviceContext = data->deviceContext, renderTargetView = data->renderTargetView]
 			(const uint32_t flags, const float r, const float g, const float b, const float a)
+		{
+			if (deviceContext && renderTargetView)
 			{
-				if (deviceContext && renderTargetView)
-				{
-					float color[4] = { r, g, b, a };
-					deviceContext->ClearRenderTargetView(renderTargetView.Get(), color);
-				}
-			};
+				float color[4] = { r, g, b, a };
+				deviceContext->ClearRenderTargetView(renderTargetView.Get(), color);
+			}
+		};
 
 		renderer.SetRenderAPIFunctions(renderAPIFunctions);
 	}

@@ -16,24 +16,31 @@ namespace cg
 		case CGRendererType::None:
 			break;
 		case CGRendererType::Direct3D11:
-			renderer::D3D11Init(m_context);
+		{
+			if (!renderer::D3D11Init(m_context))
+			{
+				return;
+			}
+
 			break;
+		}
+
 		case CGRendererType::Direct3D12:
 			break;
 		case CGRendererType::OpenGL:
-			renderer::OpenGLInit(m_context);
+		{
+			if (!renderer::OpenGLInit(info.type, m_context))
+			{
+				return;
+			}
+
 			break;
+		}
 		case CGRendererType::Vulkan:
 			break;
 		}
 
-		if (!m_context.Init())
-		{
-			// failure
-			return;
-		}
-
-		if (!CreateCGWindow(info.type, info.debug, cast(info.resolution.width), cast(info.resolution.height), "CGEngine Window", m_window))
+		if (!CreateCGWindow(cast(info.resolution.width), cast(info.resolution.height), "CGEngine Window", m_window))
 		{
 			// failure
 			return;

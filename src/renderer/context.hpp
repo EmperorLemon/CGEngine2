@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <string_view>
 
 #include "types.h"
 
@@ -10,6 +11,16 @@ namespace cg::core { struct CGWindow; }
 // context.h
 namespace cg::renderer
 {
+	struct CGPhysicalDeviceProperties
+	{
+		std::string_view vendor;
+		std::string_view renderer;
+		std::string_view version;
+		std::string_view glslVersion;
+		int32_t versionMajor = 0;
+		int32_t versionMinor = 0;
+	};
+
 	struct CGSwapchainConfig
 	{
 		uint32_t width = 0;
@@ -19,7 +30,7 @@ namespace cg::renderer
 		bool windowed = false;
 	};
 
-	struct CGRenderContextDataBase 
+	struct CGRenderContextDataBase
 	{
 		virtual ~CGRenderContextDataBase() = default;
 	};
@@ -28,32 +39,54 @@ namespace cg::renderer
 	template <CGRendererType Type>
 	struct CGRenderContextData : CGRenderContextDataBase {};
 
+	struct CGRenderContextAPIFunctions
+	{
+		std::function<bool()> init = nullptr;
+		std::function<void()> shutdown = nullptr;
+		std::function<void()> beginFrame = nullptr;
+		std::function<void()> renderFrame = nullptr;
+		std::function<void()> endFrame = nullptr;
+		std::function<void()> present = nullptr;
+	};
+
 	class CGRenderContext
 	{
 	public:
 		CGRenderContext() = default;
 		~CGRenderContext() = default;
 
-		std::function<bool()> Init = nullptr;
-		std::function<void()> Shutdown = nullptr;
-		std::function<void()> BeginFrame = nullptr;
-		std::function<void()> RenderFrame = nullptr;
-		std::function<void()> EndFrame = nullptr;
-		std::function<void()> Present = nullptr;
-		
+	public:
+		bool Init();
+		void Shutdown();
+		void BeginFrame() const;
+		void RenderFrame() const;
+		void EndFrame() const;
+		void Present() const;
+
+	public:
 		template <CGRendererType Type>
 		CGRenderContextData<Type>* GetData();
 
 		template <CGRendererType Type>
 		const CGRenderContextData<Type>* GetData() const;
 
-		bool GetDebug() const { return m_debug; }
-
 		void SetData(std::unique_ptr<CGRenderContextDataBase>&& data) { m_data = std::move(data); }
+
+		bool GetDebug() const { return m_debug; }
 		void SetDebug(const bool debug) { m_debug = debug; }
+
+		const CGPhysicalDeviceProperties& GetPhysicalDeviceProperties() const { return m_physicalDeviceProperties; }
+		void SetPhysicalDeviceProperties(const CGPhysicalDeviceProperties& deviceProperties) { m_physicalDeviceProperties = deviceProperties; }
+
+		const CGRenderContextAPIFunctions& GetRenderContextAPIFunctions() const { return m_renderContextAPIFunctions; }
+		CGRenderContextAPIFunctions& GetRenderContextAPIFunctions() { return m_renderContextAPIFunctions; }
+		void SetRenderContextAPIFunctions(const CGRenderContextAPIFunctions& apiFunctions) { m_renderContextAPIFunctions = apiFunctions; }
+
 	private:
 		std::unique_ptr<CGRenderContextDataBase> m_data;
 		bool m_debug = false;
+		CGPhysicalDeviceProperties m_physicalDeviceProperties;
+		CGRenderContextAPIFunctions m_renderContextAPIFunctions;
 	};
 
 	template <CGRendererType Type>
@@ -68,8 +101,8 @@ namespace cg::renderer
 		return dynamic_cast<CGRenderContextData<Type>*>(m_data.get());
 	}
 
-	void D3D11Init(CGRenderContext& renderContext);
-	void OpenGLInit(CGRenderContext& renderContext);
+	bool D3D11Init(CGRenderContext& renderContext);
+	bool OpenGLInit(CGRendererType rendererType, CGRenderContext& renderContext);
 
 	bool CreateD3D11Context(const CGSwapchainConfig& swapchainConfig, void* nativeWindowHandle, CGRenderContext& renderContext);
 	bool CreateOpenGLContext(void* winptr, CGRenderContext& renderContext);

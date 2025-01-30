@@ -24,7 +24,9 @@ namespace cg::core
 				m_logger->trace(msg);
 			}
 			else
+			{
 				throw std::runtime_error("Failed to log info!");
+			}
 		}
 
 		template <typename... Args>
@@ -36,7 +38,9 @@ namespace cg::core
 				m_logger->info(msg);
 			}
 			else
+			{
 				throw std::runtime_error("Failed to log info!");
+			}
 		}
 
 		template <typename... Args>
@@ -48,7 +52,9 @@ namespace cg::core
 				m_logger->warn(msg);
 			}
 			else
+			{
 				throw std::runtime_error("Failed to log info!");
+			}
 		}
 
 		template <typename... Args>
@@ -60,7 +66,9 @@ namespace cg::core
 				m_logger->error(msg);
 			}
 			else
+			{
 				throw std::runtime_error("Failed to log info!");
+			}
 		}
 
 		template <typename... Args>
@@ -72,7 +80,9 @@ namespace cg::core
 				m_logger->critical(msg);
 			}
 			else
+			{
 				throw std::runtime_error("Failed to log info!");
+			}
 		}
 	private:
 		std::shared_ptr<spdlog::logger> m_logger = nullptr;

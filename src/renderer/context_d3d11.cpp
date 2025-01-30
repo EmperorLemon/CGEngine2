@@ -6,19 +6,28 @@
 // context_d3d11.cpp
 namespace cg::renderer
 {
-	void D3D11Init(CGRenderContext& renderContext)
+	bool D3D11Init(CGRenderContext& renderContext)
 	{
 		renderContext.SetData(std::make_unique<CGRenderContextData<CGRendererType::Direct3D11>>());
 
-		renderContext.Init = []()
-			{
-				return glfwInit();
-			};
+		CGRenderContextAPIFunctions renderContextAPIFunctions;
 
-		renderContext.Shutdown = []()
-			{
-				glfwTerminate();
-			};
+		renderContextAPIFunctions.init = []()
+		{
+			return glfwInit();
+		};
+
+		renderContextAPIFunctions.shutdown = []()
+		{
+			glfwTerminate();
+		};
+
+		if (!renderContext.Init())
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 	static bool CreateRenderTargetView(CGRenderContextData<CGRendererType::Direct3D11>* data);
@@ -28,7 +37,9 @@ namespace cg::renderer
 		auto data = renderContext.GetData<CGRendererType::Direct3D11>();
 
 		if (!data)
+		{
 			return false;
+		}
 
 		// 1. Create device and context
 		UINT createDeviceFlags = 0U;
@@ -37,7 +48,9 @@ namespace cg::renderer
 		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #else
 		if (renderContext.GetDebug())
+		{
 			createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+		}
 #endif
 
 		DXGI_SWAP_CHAIN_DESC desc = {};
@@ -66,11 +79,15 @@ namespace cg::renderer
 		);
 
 		if (FAILED(result))
+		{
 			return false;
+		}
 
 		// 2. Create backbuffer and render target view
 		if (!CreateRenderTargetView(data))
+		{
 			return false;
+		}
 
 		SetupD3D11ContextFunctions(nativeWindowHandle, renderContext);
 
@@ -82,15 +99,19 @@ namespace cg::renderer
 		// Create backbuffer
 		ComPtr<ID3D11Texture2D> backbuffer;
 		HRESULT result = data->swapchain->GetBuffer(0, IID_PPV_ARGS(backbuffer.GetAddressOf()));
-		
+
 		if (FAILED(result))
+		{
 			return false;
+		}
 
 		// Create render target view
 		result = data->device->CreateRenderTargetView(backbuffer.Get(), nullptr, data->renderTargetView.GetAddressOf());
 
 		if (FAILED(result))
+		{
 			return false;
+		}
 
 		data->deviceContext->OMSetRenderTargets(1, data->renderTargetView.GetAddressOf(), nullptr);
 
@@ -101,10 +122,14 @@ namespace cg::renderer
 	{
 		auto data = renderContext.GetData<CGRendererType::Direct3D11>();
 
-		renderContext.Present = [swapchain = data->swapchain]()
+		auto& renderContextAPIFunctions = renderContext.GetRenderContextAPIFunctions();
+
+		renderContextAPIFunctions.present = [swapchain = data->swapchain]()
+		{
+			if (swapchain)
 			{
-				if (swapchain)
-					swapchain->Present(1, 0);
-			};
+				swapchain->Present(1, 0);
+			}
+		};
 	}
 }
