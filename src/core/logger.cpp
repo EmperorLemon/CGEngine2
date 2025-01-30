@@ -3,7 +3,7 @@
 #include "logger.hpp"
 
 // logger.cpp
-namespace cgengine::core
+namespace cg::core
 {
 	std::shared_ptr<spdlog::logger> CGLogger::s_logger = nullptr;
 

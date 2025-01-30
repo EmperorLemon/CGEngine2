@@ -3,14 +3,10 @@
 #include <cstdint>
 
 // window.h
-
-namespace cgengine
+namespace cg
 {
 	enum class CGRendererType : uint32_t;
-}
 
-namespace cgengine
-{
 	namespace core
 	{
 		enum class CGWindowFlags : uint32_t

@@ -1,6 +1,8 @@
 set(RENDERER
-	renderer/context.h
+	renderer/context.hpp
+	renderer/context_d3d11.h
 	renderer/context_d3d11.cpp
+	renderer/context_opengl.h
 	renderer/context_opengl.cpp
 
 	renderer/renderer.h

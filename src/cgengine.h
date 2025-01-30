@@ -5,7 +5,7 @@
 #include "renderer/renderer.h"
 
 // cgengine.h
-namespace cgengine
+namespace cg
 {
 	struct CGResolution
 	{

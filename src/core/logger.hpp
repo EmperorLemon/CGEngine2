@@ -4,7 +4,7 @@
 #include <memory>
 
 // logger.hpp
-namespace cgengine::core
+namespace cg::core
 {
 	class CGLogger
 	{

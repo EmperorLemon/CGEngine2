@@ -2,12 +2,12 @@
 #include <GLFW/glfw3.h>
 
 #include "core/logger.hpp"
-#include "context.h"
+#include "context.hpp"
 #include "types.h"
 #include "platform/window.h"
 
 // context_opengl.cpp
-namespace cgengine::renderer
+namespace cg::renderer
 {
 	static void APIENTRY DebugMessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, const GLsizei length, const GLchar* message, const void* userData)
 	{
@@ -79,28 +79,32 @@ namespace cgengine::renderer
 		}
 	}
 
-	void OpenGLInit(CGRenderContext& context)
+	void OpenGLInit(CGRenderContext& renderContext)
 	{
-		context.Init = []()
+		renderContext.Init = []()
 			{
 				return glfwInit();
 			};
 
-		context.Shutdown = []()
+		renderContext.Shutdown = []()
 			{
 				glfwTerminate();
 			};
 	}
 
-	void CreateOpenGLContext(void* winptr, CGRenderContext& context)
+	bool CreateOpenGLContext(void* winptr, CGRenderContext& renderContext)
 	{
 		auto window = static_cast<GLFWwindow*>(winptr);
+
+		if (!window)
+			return false;
 
 		glfwMakeContextCurrent(window);
 
 		if (!gladLoadGL(glfwGetProcAddress))
 		{
 			// glfwGetError(&error);
+			return false;
 		}
 
 		GLint flags; glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
@@ -113,11 +117,28 @@ namespace cgengine::renderer
 			glDebugMessageCallback(DebugMessageCallback, nullptr);
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 		}
+#else
+		if (renderContext.GetDebug() && ((flags & GL_CONTEXT_FLAG_DEBUG_BIT)))
+		{
+			glEnable(GL_DEBUG_OUTPUT);
+			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+			glDebugMessageCallback(DebugMessageCallback, nullptr);
+			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+		}
 #endif
 
-		context.SwapBuffers = [window]()
-		{
-			glfwSwapBuffers(window);
-		};
+		SetupOpenGLContextFunctions(window, renderContext);
+
+		return true;
+	}
+
+	void SetupOpenGLContextFunctions(void* winptr, CGRenderContext& renderContext)
+	{
+		auto window = static_cast<GLFWwindow*>(winptr);
+
+		renderContext.Present = [window]()
+			{
+				glfwSwapBuffers(window);
+			};
 	}
 }

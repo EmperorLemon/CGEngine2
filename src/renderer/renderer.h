@@ -4,10 +4,10 @@
 #include <memory>
 #include <functional>
 
-#include "context.h"
+#include "context.hpp"
 
 // renderer.h
-namespace cgengine::renderer
+namespace cg::renderer
 {
 	enum class CGClearFlags : uint32_t
 	{
@@ -17,7 +17,7 @@ namespace cgengine::renderer
 		Stencil = 1 << 2
 	};
 
-	struct CGRenderFunctions
+	struct CGRenderAPIFunctions
 	{
 		std::function<void(CGClearFlags)> Clear;
 		std::function<void(float, float, float, float)> ClearColor;
@@ -30,11 +30,11 @@ namespace cgengine::renderer
 		void ClearColor(float r, float g, float b, float a = 1.0f) const;
 		void ClearColor(uint32_t color) const;
 
-		void SetRenderFunctions(const CGRenderFunctions& renderFunctions) { m_api = renderFunctions; }
+		void SetRenderAPIFunctions(const CGRenderAPIFunctions& renderAPIFunctions) { m_api = renderAPIFunctions; }
 	private:
-		CGRenderFunctions m_api;
+		CGRenderAPIFunctions m_api;
 	};
 
-	void SetupOpenGLFunctions(CGRenderer& renderer);
-	void SetupD3D11Functions(CGRenderer& renderer);
+	void SetupOpenGLRenderFunctions(CGRenderer& renderer);
+	void SetupD3D11RenderFunctions(CGRenderer& renderer);
 }

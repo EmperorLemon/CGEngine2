@@ -3,7 +3,7 @@
 #include "core/logger.hpp"
 
 // cgengine.cpp
-namespace cgengine
+namespace cg
 {
 	static constexpr int32_t cast(uint32_t value) { return static_cast<int32_t>(value); }
 
@@ -39,20 +39,43 @@ namespace cgengine
 			return;
 		}
 
+		m_context.SetDebug(info.debug);
+
+		renderer::CGSwapchainConfig swapchainConfig;
+		swapchainConfig.bufferCount = 2;
+		swapchainConfig.width = info.resolution.width;
+		swapchainConfig.height = info.resolution.height;
+		swapchainConfig.vsync = true;
+		swapchainConfig.windowed = true;
+
 		switch (info.type)
 		{
 		case CGRendererType::None:
 			break;
 		case CGRendererType::Direct3D11:
-			renderer::CreateD3D11Context(m_context);
-			SetupD3D11Functions(m_renderer);
+		{
+			if (!renderer::CreateD3D11Context(swapchainConfig, m_window.nwh, m_context))
+			{
+				break;
+			}
+
+			SetupD3D11RenderFunctions(m_renderer);
+
 			break;
+		}
 		case CGRendererType::Direct3D12:
 			break;
 		case CGRendererType::OpenGL:
-			renderer::CreateOpenGLContext(m_window.winptr, m_context);
-			SetupOpenGLFunctions(m_renderer);
+		{
+			if (!renderer::CreateOpenGLContext(m_window.winptr, m_context))
+			{
+				break;
+			}
+
+			SetupOpenGLRenderFunctions(m_renderer);
+
 			break;
+		}
 		case CGRendererType::Vulkan:
 			break;
 		}

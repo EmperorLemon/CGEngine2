@@ -10,7 +10,7 @@
 
 // window_glfw.cpp
 
-namespace cgengine
+namespace cg
 {
 	bool CreateCGWindow(const CGRendererType type, const bool debug, int32_t width, int32_t height, const char* title, core::CGWindow& window)
 	{

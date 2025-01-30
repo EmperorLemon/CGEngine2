@@ -1,9 +1,9 @@
 #include "renderer.h"
 
 // renderer_d3d11.cpp
-namespace cgengine::renderer
+namespace cg::renderer
 {
-	void SetupD3D11Functions(CGRenderer& renderer)
+	void SetupD3D11RenderFunctions(CGRenderer& renderer)
 	{
 
 	}
