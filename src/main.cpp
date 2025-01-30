@@ -21,12 +21,11 @@ int main(int argc, char* argv[])
     const auto& renderer = engine.GetRenderer();
     const auto& context = engine.GetContext();
 
+    renderer.ClearView(CG_CLEAR_COLOR, 0xFF0000FF);
+
     while (engine.IsRunning())
     {
         cg::PollEvents();
-
-        renderer.ClearColor(0.5f, 0.2f, 0.6f, 1);
-        renderer.Clear(cg::renderer::CGClearFlags::Color);
 
         context.Present();
     }

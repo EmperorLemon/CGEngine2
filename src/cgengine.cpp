@@ -59,7 +59,7 @@ namespace cg
 				break;
 			}
 
-			SetupD3D11RenderFunctions(m_renderer);
+			SetupD3D11RenderFunctions(m_renderer, m_context);
 
 			break;
 		}
