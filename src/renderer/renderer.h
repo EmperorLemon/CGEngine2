@@ -1,7 +1,7 @@
 #pragma once
 
 #include "defines.h"
-#include "context.hpp"
+#include "context/context.hpp"
 
 // renderer.h
 namespace cg::renderer
