@@ -11,7 +11,7 @@ constexpr int WINDOW_HEIGHT = 600;
 int main(int argc, char* argv[])
 {
     cg::CGEngineCreateInfo info;
-    info.type = cg::CGRendererType::OpenGL;
+    info.rendererType = cg::CGRendererType::Direct3D11;
     info.resolution.width = WINDOW_WIDTH;
     info.resolution.height = WINDOW_HEIGHT;
     info.debug = true;
@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     cg::CGEngine engine(info);
 
     const auto& renderer = engine.GetRenderer();
-    const auto& context = engine.GetContext();
+    const auto& context = engine.GetRenderContext();
 
     while (engine.IsRunning())
     {

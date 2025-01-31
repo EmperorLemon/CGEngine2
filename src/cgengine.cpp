@@ -5,33 +5,46 @@
 // cgengine.cpp
 namespace cg
 {
-	static constexpr int32_t cast(uint32_t value) { return static_cast<int32_t>(value); }
+	static bool InitGraphicsAPI(CGRendererType rendererType, renderer::CGRenderContext& renderContext, bool debug);
+	static bool CreateWindow(int32_t width, int32_t height, core::CGWindow& window);
+	static bool CreateRenderContext(const CGEngineCreateInfo& info, core::CGWindow& window, renderer::CGRenderContext& renderContext);
+	static void SetupRenderFunctions(CGRendererType rendererType, renderer::CGRenderer& renderer, renderer::CGRenderContext& renderContext);
 
 	CGEngine::CGEngine(const CGEngineCreateInfo& info)
 	{
 		core::CGLogger::Init();
 
-		switch (info.type)
+		InitGraphicsAPI(info.rendererType, m_renderContext, info.debug);
+
+		CreateWindow(info.resolution.width, info.resolution.height, m_window);
+
+		CreateRenderContext(info, m_window, m_renderContext);
+
+		SetupRenderFunctions(info.rendererType, m_renderer, m_renderContext);
+	}
+
+	bool InitGraphicsAPI(const CGRendererType rendererType, renderer::CGRenderContext& renderContext, const bool debug)
+	{
+		switch (rendererType)
 		{
 		case CGRendererType::None:
 			break;
 		case CGRendererType::Direct3D11:
 		{
-			if (!renderer::D3D11Init(m_context))
+			if (!renderer::D3D11Init(renderContext))
 			{
-				return;
+				return false;
 			}
 
 			break;
 		}
-
 		case CGRendererType::Direct3D12:
 			break;
 		case CGRendererType::OpenGL:
 		{
-			if (!renderer::OpenGLInit(info.type, m_context))
+			if (!renderer::OpenGLInit(renderContext, debug))
 			{
-				return;
+				return false;
 			}
 
 			break;
@@ -40,14 +53,21 @@ namespace cg
 			break;
 		}
 
-		if (!CreateCGWindow(cast(info.resolution.width), cast(info.resolution.height), "CGEngine Window", m_window))
+		return true;
+	}
+
+	bool CreateWindow(int32_t width, int32_t height, core::CGWindow& window)
+	{
+		if (!CreateCGWindow(width, height, "CGEngine Window", window))
 		{
-			// failure
-			return;
+			return false;
 		}
 
-		m_context.SetDebug(info.debug);
+		return true;
+	}
 
+	bool CreateRenderContext(const CGEngineCreateInfo& info, core::CGWindow& window, renderer::CGRenderContext& renderContext)
+	{
 		renderer::CGSwapchainConfig swapchainConfig;
 		swapchainConfig.bufferCount = 2;
 		swapchainConfig.width = info.resolution.width;
@@ -55,18 +75,16 @@ namespace cg
 		swapchainConfig.vsync = true;
 		swapchainConfig.windowed = true;
 
-		switch (info.type)
+		switch (info.rendererType)
 		{
 		case CGRendererType::None:
 			break;
 		case CGRendererType::Direct3D11:
 		{
-			if (!renderer::CreateD3D11Context(swapchainConfig, m_window.nwh, m_context))
+			if (!renderer::CreateD3D11Context(swapchainConfig, window.nwh, renderContext, info.debug))
 			{
-				break;
+				return false;
 			}
-
-			SetupD3D11RenderFunctions(m_renderer, m_context);
 
 			break;
 		}
@@ -74,13 +92,36 @@ namespace cg
 			break;
 		case CGRendererType::OpenGL:
 		{
-			if (!renderer::CreateOpenGLContext(m_window.winptr, m_context))
+			if (!renderer::CreateOpenGLContext(window.winptr, renderContext, info.debug))
 			{
-				break;
+				return false;
 			}
 
-			SetupOpenGLRenderFunctions(m_renderer);
+			break;
+		}
+		case CGRendererType::Vulkan:
+			break;
+		}
 
+		return true;
+	}
+
+	void SetupRenderFunctions(const CGRendererType rendererType, renderer::CGRenderer& renderer, renderer::CGRenderContext& renderContext)
+	{
+		switch (rendererType)
+		{
+		case CGRendererType::None:
+			break;
+		case CGRendererType::Direct3D11:
+		{
+			renderer::SetupD3D11RenderFunctions(renderer, renderContext);
+			break;
+		}
+		case CGRendererType::Direct3D12:
+			break;
+		case CGRendererType::OpenGL:
+		{
+			renderer::SetupOpenGLRenderFunctions(renderer);
 			break;
 		}
 		case CGRendererType::Vulkan:
@@ -95,6 +136,6 @@ namespace cg
 
 	CGEngine::~CGEngine()
 	{
-		m_context.Shutdown();
+		m_renderContext.Shutdown();
 	}
 }

@@ -15,7 +15,7 @@ namespace cg
 
 	struct CGEngineCreateInfo
 	{
-		CGRendererType type = CGRendererType::None;
+		CGRendererType rendererType = CGRendererType::None;
 		CGResolution resolution;
 		bool debug = false;
 	};
@@ -28,11 +28,11 @@ namespace cg
 
 		bool IsRunning() const;
 
-		const renderer::CGRenderContext& GetContext() const { return m_context; }
+		const renderer::CGRenderContext& GetRenderContext() const { return m_renderContext; }
 		const renderer::CGRenderer& GetRenderer() const { return m_renderer; }
 	private:
-		core::CGWindow m_window;
-		renderer::CGRenderContext m_context;
+		renderer::CGRenderContext m_renderContext;
 		renderer::CGRenderer m_renderer;
+		core::CGWindow m_window;
 	};
 }

@@ -6,11 +6,15 @@
 // context_d3d11.cpp
 namespace cg::renderer
 {
+	// Forward declarations
+	static bool CreateDeviceAndSwapchain(const CGSwapchainConfig& swapchainConfig, HWND nativeWindowHandle, CGRenderContextData<CGRendererType::Direct3D11>* data, bool debug);
+	static bool CreateRenderTargetView(CGRenderContextData<CGRendererType::Direct3D11>* data);
+
 	bool D3D11Init(CGRenderContext& renderContext)
 	{
-		renderContext.SetData(std::make_unique<CGRenderContextData<CGRendererType::Direct3D11>>());
+		auto& renderContextAPIFunctions = renderContext.GetRenderContextAPIFunctions();
 
-		CGRenderContextAPIFunctions renderContextAPIFunctions;
+		renderContext.SetData(std::make_unique<CGRenderContextData<CGRendererType::Direct3D11>>());
 
 		renderContextAPIFunctions.init = []()
 		{
@@ -27,12 +31,13 @@ namespace cg::renderer
 			return false;
 		}
 
+		// Set GLFW window hints
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
 		return true;
 	}
 
-	static bool CreateRenderTargetView(CGRenderContextData<CGRendererType::Direct3D11>* data);
-
-	bool CreateD3D11Context(const CGSwapchainConfig& swapchainConfig, void* nativeWindowHandle, CGRenderContext& renderContext)
+	bool CreateD3D11Context(const CGSwapchainConfig& swapchainConfig, void* nativeWindowHandle, CGRenderContext& renderContext, const bool debug)
 	{
 		auto data = renderContext.GetData<CGRendererType::Direct3D11>();
 
@@ -42,43 +47,7 @@ namespace cg::renderer
 		}
 
 		// 1. Create device and context
-		UINT createDeviceFlags = 0U;
-
-#ifdef _DEBUG
-		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-#else
-		if (renderContext.GetDebug())
-		{
-			createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-		}
-#endif
-
-		DXGI_SWAP_CHAIN_DESC desc = {};
-		desc.BufferCount = swapchainConfig.bufferCount;
-		desc.BufferDesc.Width = swapchainConfig.width;
-		desc.BufferDesc.Height = swapchainConfig.height;
-		desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		desc.BufferDesc.RefreshRate = { 60, 1 };
-		desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		desc.OutputWindow = static_cast<HWND>(nativeWindowHandle);
-		desc.SampleDesc = { 1, 0 };
-		desc.Windowed = swapchainConfig.windowed;
-
-		HRESULT result = D3D11CreateDeviceAndSwapChain(
-			nullptr,						   // Default adapter
-			D3D_DRIVER_TYPE_HARDWARE,		   // Hardware driver
-			nullptr,						   // No software driver
-			createDeviceFlags,				   // Debug flags, etc.
-			nullptr, 0U,					   // Default feature level
-			D3D11_SDK_VERSION,
-			&desc,						       // Swapchain description
-			data->swapchain.GetAddressOf(),    // Output swapchain
-			data->device.GetAddressOf(),	   // Output device
-			nullptr,						   // Actual feature level (optional)
-			data->deviceContext.GetAddressOf() // Output device context
-		);
-
-		if (FAILED(result))
+		if (!CreateDeviceAndSwapchain(swapchainConfig, static_cast<HWND>(nativeWindowHandle), data, debug))
 		{
 			return false;
 		}
@@ -90,6 +59,49 @@ namespace cg::renderer
 		}
 
 		SetupD3D11ContextFunctions(nativeWindowHandle, renderContext);
+
+		return true;
+	}
+
+	bool CreateDeviceAndSwapchain(const CGSwapchainConfig& swapchainConfig, HWND nativeWindowHandle, CGRenderContextData<CGRendererType::Direct3D11>* data, const bool debug)
+	{
+		UINT createDeviceFlags = 0U;
+
+		if (debug)
+		{
+			createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+		}
+
+		DXGI_SWAP_CHAIN_DESC scd = {};
+		scd.BufferCount = swapchainConfig.bufferCount;
+		scd.BufferDesc.Width = swapchainConfig.width;
+		scd.BufferDesc.Height = swapchainConfig.height;
+		scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		scd.BufferDesc.RefreshRate = DXGI_RATIONAL{ 0, 1 };
+		scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		scd.OutputWindow = nativeWindowHandle;
+		scd.SampleDesc = { 1, 0 };
+		scd.Windowed = swapchainConfig.windowed;
+		scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+		HRESULT result = D3D11CreateDeviceAndSwapChain(
+			nullptr,						   // Default adapter
+			D3D_DRIVER_TYPE_HARDWARE,		   // Hardware driver
+			nullptr,						   // No software driver
+			createDeviceFlags,				   // Debug flags, etc.
+			nullptr, 0U,					   // Default feature level
+			D3D11_SDK_VERSION,
+			&scd,						       // Swapchain description
+			data->swapchain.GetAddressOf(),    // Output swapchain
+			data->device.GetAddressOf(),	   // Output device
+			nullptr,						   // Actual feature level (optional)
+			data->deviceContext.GetAddressOf() // Output device context
+		);
+
+		if (FAILED(result))
+		{
+			return false;
+		}
 
 		return true;
 	}

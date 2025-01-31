@@ -64,6 +64,13 @@ namespace cg::renderer
 		void Present() const;
 
 	public:
+		const CGRenderContextAPIFunctions& GetRenderContextAPIFunctions() const { return m_renderContextAPIFunctions; }
+		CGRenderContextAPIFunctions& GetRenderContextAPIFunctions() { return m_renderContextAPIFunctions; }
+		void SetRenderContextAPIFunctions(const CGRenderContextAPIFunctions& apiFunctions) { m_renderContextAPIFunctions = apiFunctions; }
+
+		const CGPhysicalDeviceProperties& GetPhysicalDeviceProperties() const { return m_physicalDeviceProperties; }
+		void SetPhysicalDeviceProperties(const CGPhysicalDeviceProperties& deviceProperties) { m_physicalDeviceProperties = deviceProperties; }
+
 		template <CGRendererType Type>
 		CGRenderContextData<Type>* GetData();
 
@@ -71,22 +78,10 @@ namespace cg::renderer
 		const CGRenderContextData<Type>* GetData() const;
 
 		void SetData(std::unique_ptr<CGRenderContextDataBase>&& data) { m_data = std::move(data); }
-
-		bool GetDebug() const { return m_debug; }
-		void SetDebug(const bool debug) { m_debug = debug; }
-
-		const CGPhysicalDeviceProperties& GetPhysicalDeviceProperties() const { return m_physicalDeviceProperties; }
-		void SetPhysicalDeviceProperties(const CGPhysicalDeviceProperties& deviceProperties) { m_physicalDeviceProperties = deviceProperties; }
-
-		const CGRenderContextAPIFunctions& GetRenderContextAPIFunctions() const { return m_renderContextAPIFunctions; }
-		CGRenderContextAPIFunctions& GetRenderContextAPIFunctions() { return m_renderContextAPIFunctions; }
-		void SetRenderContextAPIFunctions(const CGRenderContextAPIFunctions& apiFunctions) { m_renderContextAPIFunctions = apiFunctions; }
-
 	private:
-		std::unique_ptr<CGRenderContextDataBase> m_data;
-		bool m_debug = false;
-		CGPhysicalDeviceProperties m_physicalDeviceProperties;
 		CGRenderContextAPIFunctions m_renderContextAPIFunctions;
+		CGPhysicalDeviceProperties m_physicalDeviceProperties;
+		std::unique_ptr<CGRenderContextDataBase> m_data;
 	};
 
 	template <CGRendererType Type>
@@ -102,10 +97,10 @@ namespace cg::renderer
 	}
 
 	bool D3D11Init(CGRenderContext& renderContext);
-	bool OpenGLInit(CGRendererType rendererType, CGRenderContext& renderContext);
+	bool OpenGLInit(CGRenderContext& renderContext, bool debug);
 
-	bool CreateD3D11Context(const CGSwapchainConfig& swapchainConfig, void* nativeWindowHandle, CGRenderContext& renderContext);
-	bool CreateOpenGLContext(void* winptr, CGRenderContext& renderContext);
+	bool CreateD3D11Context(const CGSwapchainConfig& swapchainConfig, void* nativeWindowHandle, CGRenderContext& renderContext, bool debug);
+	bool CreateOpenGLContext(void* winptr, CGRenderContext& renderContext, bool debug);
 
 	void SetupD3D11ContextFunctions(void* nativeWindowHandle, CGRenderContext& renderContext);
 	void SetupOpenGLContextFunctions(void* winptr, CGRenderContext& renderContext);

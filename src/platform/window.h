@@ -20,10 +20,10 @@ namespace cg
 
 		struct CGWindow
 		{
-			int32_t width = 0;
-			int32_t height = 0;
 			void* winptr = nullptr; // Window handle for window libraries (GLFW, SDL, etc.)
 			void* nwh = nullptr; // Platform-specific window handle (HWND, NSWindow*, etc.)
+			int32_t width = 0;
+			int32_t height = 0;
 		};
 	}
 

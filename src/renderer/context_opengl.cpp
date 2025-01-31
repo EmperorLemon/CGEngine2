@@ -78,8 +78,9 @@ namespace cg::renderer
 		default: break;
 		}
 	}
+	static void QueryPhysicalDevice(CGPhysicalDeviceProperties& deviceProperties);
 
-	bool OpenGLInit(CGRendererType rendererType, CGRenderContext& renderContext)
+	bool OpenGLInit(CGRenderContext& renderContext, const bool debug)
 	{
 		auto& renderContextAPIFunctions = renderContext.GetRenderContextAPIFunctions();
 
@@ -99,24 +100,15 @@ namespace cg::renderer
 		}
 
 		// Set GLFW window hints
-		if (rendererType == CGRendererType::OpenGL)
-		{
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
-			glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, renderContext.GetDebug());
-		}
-		else
-		{
-			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		}
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, debug);
 
 		return true;
 	}
 
-	static void QueryPhysicalDevice(CGPhysicalDeviceProperties& deviceProperties);
-
-	bool CreateOpenGLContext(void* winptr, CGRenderContext& renderContext)
+	bool CreateOpenGLContext(void* winptr, CGRenderContext& renderContext, const bool debug)
 	{
 		auto window = static_cast<GLFWwindow*>(winptr);
 
@@ -139,23 +131,14 @@ namespace cg::renderer
 
 		GLint flags; glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
 
-#ifdef _DEBUG
-		if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+		if (debug && ((flags & GL_CONTEXT_FLAG_DEBUG_BIT)))
 		{
 			glEnable(GL_DEBUG_OUTPUT);
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 			glDebugMessageCallback(DebugMessageCallback, nullptr);
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 		}
-#else
-		if (renderContext.GetDebug() && ((flags & GL_CONTEXT_FLAG_DEBUG_BIT)))
-		{
-			glEnable(GL_DEBUG_OUTPUT);
-			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-			glDebugMessageCallback(DebugMessageCallback, nullptr);
-			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
-		}
-#endif
+
 		CGPhysicalDeviceProperties deviceProperties;
 
 		QueryPhysicalDevice(deviceProperties);
@@ -188,13 +171,9 @@ namespace cg::renderer
 			deviceProperties.version, deviceProperties.glslVersion
 		);
 
-		core::CG_TRACE("\nNumber of extensions available: {0}\n", numExtensions);
-
 		for (GLint i = 0; i < numExtensions; ++i)
 		{
 			const std::string_view extensionName = reinterpret_cast<const char*>(glGetStringi(GL_EXTENSIONS, i));
-
-			core::CG_TRACE(" {0}", extensionName);
 		}
 	}
 
