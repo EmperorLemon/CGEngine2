@@ -1,15 +1,18 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
+#include <cstdio>
 
-#include "core/logger.hpp"
 #include "context.hpp"
 #include "types.h"
 #include "platform/window.h"
 
 // context_opengl.cpp
-namespace cg::renderer
+namespace cg::renderer::ContextOps
 {
-	static void APIENTRY DebugMessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, const GLsizei length, const GLchar* message, const void* userData)
+	static void SwapBuffers(void* window);
+	static void QueryDevice(CGDeviceProperties& deviceProperties);
+
+	static void APIENTRY DebugMessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, [[maybe_unused]] const GLsizei length, const GLchar* message, [[maybe_unused]] const void* userData)
 	{
 		// ignore non-significant error/warning codes
 		if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
@@ -64,37 +67,27 @@ namespace cg::renderer
 		switch (severity)
 		{
 		case GL_DEBUG_SEVERITY_NOTIFICATION:
-			core::CG_TRACE("{0}, {1}, {2}, {3}: {4}", src_str, type_str, severity_str, id, message);
+			printf("%s, %s, %s, %d: %s", src_str, type_str, severity_str, id, message);
 			break;
 		case GL_DEBUG_SEVERITY_LOW:
-			core::CG_WARN("{0}, {1}, {2}, {3}: {4}", src_str, type_str, severity_str, id, message);
+			printf("%s, %s, %s, %d: %s", src_str, type_str, severity_str, id, message);
 			break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
-			core::CG_ERROR("{0}, {1}, {2}, {3}: {4}", src_str, type_str, severity_str, id, message);
+			printf("%s, %s, %s, %d: %s", src_str, type_str, severity_str, id, message);
 			break;
 		case GL_DEBUG_SEVERITY_HIGH:
-			core::CG_CRITICAL("{0}, {1}, {2}, {3}: {4}", src_str, type_str, severity_str, id, message);
+			printf("%s, %s, %s, %d: %s", src_str, type_str, severity_str, id, message);
 			break;
 		default: break;
 		}
 	}
-	static void QueryPhysicalDevice(CGPhysicalDeviceProperties& deviceProperties);
 
 	bool OpenGLInit(CGRenderContext& renderContext, const bool debug)
 	{
-		auto& renderContextAPIFunctions = renderContext.GetRenderContextAPIFunctions();
+		renderContext.apiFunctions.init = glfwInit;
+		renderContext.apiFunctions.shutdown = glfwTerminate;
 
-		renderContextAPIFunctions.init = []()
-		{
-			return glfwInit();
-		};
-
-		renderContextAPIFunctions.shutdown = []()
-		{
-			glfwTerminate();
-		};
-
-		if (!renderContext.Init())
+		if (!renderContext.apiFunctions.init())
 		{
 			return false;
 		}
@@ -124,12 +117,13 @@ namespace cg::renderer
 			const char* error;
 			glfwGetError(&error);
 
-			core::CG_ERROR("GLFW/OpenGL Error: {0}", error);
+			printf("GLFW/OpenGL Error: %s", error);
 
 			return false;
 		}
 
-		GLint flags; glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+		GLint flags; 
+		glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
 
 		if (debug && ((flags & GL_CONTEXT_FLAG_DEBUG_BIT)))
 		{
@@ -139,17 +133,13 @@ namespace cg::renderer
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 		}
 
-		CGPhysicalDeviceProperties deviceProperties;
-
-		QueryPhysicalDevice(deviceProperties);
-		SetupOpenGLContextFunctions(window, renderContext);
-
-		renderContext.SetPhysicalDeviceProperties(deviceProperties);
+		QueryDevice(renderContext.deviceProperties);
+		SetupOpenGLContextFunctions(renderContext);
 
 		return true;
 	}
 
-	void QueryPhysicalDevice(CGPhysicalDeviceProperties& deviceProperties)
+	void QueryDevice(CGDeviceProperties& deviceProperties)
 	{
 		deviceProperties.vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
 		deviceProperties.renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
@@ -162,13 +152,15 @@ namespace cg::renderer
 		GLint numExtensions;
 		glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
 
-		core::CG_INFO("\n"
-			"Vendor: {0}\n"
-			"Renderer: {1}\n"
-			"OpenGL Version: {2}\n"
-			"GLSL Version: {3}",
-			deviceProperties.vendor, deviceProperties.renderer,
-			deviceProperties.version, deviceProperties.glslVersion
+		printf("OpenGL Context Info:\n\n");
+
+		printf(
+			"Vendor: %s\n"
+			"Renderer: %s\n"
+			"OpenGL Version: %s\n"
+			"GLSL Version: %s",
+			deviceProperties.vendor.data(), deviceProperties.renderer.data(),
+			deviceProperties.version.data(), deviceProperties.glslVersion.data()
 		);
 
 		for (GLint i = 0; i < numExtensions; ++i)
@@ -177,15 +169,13 @@ namespace cg::renderer
 		}
 	}
 
-	void SetupOpenGLContextFunctions(void* winptr, CGRenderContext& renderContext)
+	static void SwapBuffers(void* window)
 	{
-		auto window = static_cast<GLFWwindow*>(winptr);
+		glfwSwapBuffers(static_cast<GLFWwindow*>(window));
+	}
 
-		auto& renderContextAPIFunctions = renderContext.GetRenderContextAPIFunctions();
-
-		renderContextAPIFunctions.present = [window]()
-		{
-			glfwSwapBuffers(window);
-		};
+	void SetupOpenGLContextFunctions(CGRenderContext& renderContext)
+	{
+		renderContext.apiFunctions.present = SwapBuffers;
 	}
 }

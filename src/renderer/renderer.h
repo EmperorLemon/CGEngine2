@@ -8,22 +8,25 @@ namespace cg::renderer
 {
 	struct CGRenderAPIFunctions
 	{
-		std::function<void(uint32_t, float, float, float, float)> ClearColor;
+		void (*clearColor)(uint32_t, float, float, float, float) = nullptr;
+		void (*bindVertexBuffer)(uint32_t) = nullptr;
+		void (*drawArrays)(int32_t count) = nullptr;
+		void (*drawElements)(int32_t count) = nullptr;
+		void (*submit)(uint32_t) = nullptr;
 	};
 
-	class CGRenderer
+	struct CGRenderer
 	{
-	public:
+		CGRenderAPIFunctions renderAPIFunctions;
+
 		void ClearView(uint32_t flags, float r, float g, float b, float a = 1.0f) const;
 		void ClearView(uint32_t flags, uint32_t color) const;
-
-		const CGRenderAPIFunctions& GetRenderAPIFunctions() const { return m_renderAPIFunctions; }
-		CGRenderAPIFunctions& GetAPIFunctions() { return m_renderAPIFunctions; }
-		void SetRenderAPIFunctions(const CGRenderAPIFunctions& renderAPIFunctions) { m_renderAPIFunctions = renderAPIFunctions; }
-	private:
-		CGRenderAPIFunctions m_renderAPIFunctions;
+		void BindVertexBuffer(uint32_t vertexBuffer) const;
+		void DrawArrays(int32_t count) const;
+		void DrawElements(int32_t count) const;
+		void Submit(uint32_t shaderProgram) const;
 	};
 
 	void SetupOpenGLRenderFunctions(CGRenderer& renderer);
-	void SetupD3D11RenderFunctions(CGRenderer& renderer, const CGRenderContext& renderContext);
+	//void SetupD3D11RenderFunctions(CGRenderer& renderer, const CGRenderContext& renderContext);
 }

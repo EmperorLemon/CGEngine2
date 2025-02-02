@@ -1,17 +1,17 @@
 #pragma once
 
-#include <functional>
-#include <memory>
 #include <string_view>
 
 #include "types.h"
+#include "../buffer/buffer.h"
+#include "../shader/shader.h"
 
 namespace cg::core { struct CGWindow; }
 
 // context.h
 namespace cg::renderer
 {
-	struct CGPhysicalDeviceProperties
+	struct CGDeviceProperties
 	{
 		std::string_view vendor;
 		std::string_view renderer;
@@ -30,78 +30,43 @@ namespace cg::renderer
 		bool windowed = false;
 	};
 
-	struct CGRenderContextDataBase
-	{
-		virtual ~CGRenderContextDataBase() = default;
-	};
-
-	// Base template for renderer-specific data
-	template <CGRendererType Type>
-	struct CGRenderContextData : CGRenderContextDataBase {};
-
 	struct CGRenderContextAPIFunctions
 	{
-		std::function<bool()> init = nullptr;
-		std::function<void()> shutdown = nullptr;
-		std::function<void()> beginFrame = nullptr;
-		std::function<void()> renderFrame = nullptr;
-		std::function<void()> endFrame = nullptr;
-		std::function<void()> present = nullptr;
+		int(*init)() = nullptr;
+		void(*shutdown)() = nullptr;
+		void(*beginFrame)() = nullptr;
+		void(*renderFrame)() = nullptr;
+		void(*endFrame)() = nullptr;
+		void(*present)(void*) = nullptr;
 	};
 
-	class CGRenderContext
+	struct CGRenderContext
 	{
-	public:
-		CGRenderContext() = default;
-		~CGRenderContext() = default;
-
-	public:
-		bool Init();
-		void Shutdown();
-		void BeginFrame() const;
-		void RenderFrame() const;
-		void EndFrame() const;
-		void Present() const;
-
-	public:
-		const CGRenderContextAPIFunctions& GetRenderContextAPIFunctions() const { return m_renderContextAPIFunctions; }
-		CGRenderContextAPIFunctions& GetRenderContextAPIFunctions() { return m_renderContextAPIFunctions; }
-		void SetRenderContextAPIFunctions(const CGRenderContextAPIFunctions& apiFunctions) { m_renderContextAPIFunctions = apiFunctions; }
-
-		const CGPhysicalDeviceProperties& GetPhysicalDeviceProperties() const { return m_physicalDeviceProperties; }
-		void SetPhysicalDeviceProperties(const CGPhysicalDeviceProperties& deviceProperties) { m_physicalDeviceProperties = deviceProperties; }
-
-		template <CGRendererType Type>
-		CGRenderContextData<Type>* GetData();
-
-		template <CGRendererType Type>
-		const CGRenderContextData<Type>* GetData() const;
-
-		void SetData(std::unique_ptr<CGRenderContextDataBase>&& data) { m_data = std::move(data); }
-	private:
-		CGRenderContextAPIFunctions m_renderContextAPIFunctions;
-		CGPhysicalDeviceProperties m_physicalDeviceProperties;
-		std::unique_ptr<CGRenderContextDataBase> m_data;
+		CGVIBufferPool bufferPool;
+		CGShaderHandlePool shaderPool;
+		CGRenderContextAPIFunctions apiFunctions;
+		CGDeviceProperties deviceProperties;
 	};
 
-	template <CGRendererType Type>
-	CGRenderContextData<Type>* CGRenderContext::GetData()
+	// Context operations
+	namespace ContextOps
 	{
-		return dynamic_cast<CGRenderContextData<Type>*>(m_data.get());
+		//bool D3D11Init(CGRenderContext& renderContext);
+		bool OpenGLInit(CGRenderContext& renderContext, bool debug);
+
+		//bool CreateD3D11Context(const CGSwapchainConfig& swapchainConfig, void* nativeWindowHandle, CGRenderContext& renderContext, bool debug);
+		bool CreateOpenGLContext(void* winptr, CGRenderContext& renderContext, bool debug);
+
+		//void SetupD3D11ContextFunctions(void* nativeWindowHandle, CGRenderContext& renderContext);
+		void SetupOpenGLContextFunctions(CGRenderContext& renderContext);
 	}
 
-	template <CGRendererType Type>
-	const CGRenderContextData<Type>* CGRenderContext::GetData() const
+	// Frame operations
+	namespace FrameOps
 	{
-		return dynamic_cast<CGRenderContextData<Type>*>(m_data.get());
+		void Present(const CGRenderContextAPIFunctions& apiFunctions, void* window);
 	}
 
-	bool D3D11Init(CGRenderContext& renderContext);
-	bool OpenGLInit(CGRenderContext& renderContext, bool debug);
-
-	bool CreateD3D11Context(const CGSwapchainConfig& swapchainConfig, void* nativeWindowHandle, CGRenderContext& renderContext, bool debug);
-	bool CreateOpenGLContext(void* winptr, CGRenderContext& renderContext, bool debug);
-
-	void SetupD3D11ContextFunctions(void* nativeWindowHandle, CGRenderContext& renderContext);
-	void SetupOpenGLContextFunctions(void* winptr, CGRenderContext& renderContext);
 }
+
+

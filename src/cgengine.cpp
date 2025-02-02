@@ -1,7 +1,5 @@
 #include "cgengine.h"
 
-#include "core/logger.hpp"
-
 // cgengine.cpp
 namespace cg
 {
@@ -12,11 +10,9 @@ namespace cg
 
 	CGEngine::CGEngine(const CGEngineCreateInfo& info)
 	{
-		core::CGLogger::Init();
-
 		InitGraphicsAPI(info.rendererType, m_renderContext, info.debug);
 
-		CreateWindow(info.resolution.width, info.resolution.height, m_window);
+		CreateWindow(static_cast<int32_t>(info.resolution.width), static_cast<int32_t>(info.resolution.height), m_window);
 
 		CreateRenderContext(info, m_window, m_renderContext);
 
@@ -27,30 +23,32 @@ namespace cg
 	{
 		switch (rendererType)
 		{
-		case CGRendererType::None:
-			break;
-		case CGRendererType::Direct3D11:
-		{
-			if (!renderer::D3D11Init(renderContext))
+			case CGRendererType::None:
+				break;
+			case CGRendererType::Direct3D11:
 			{
-				return false;
-			}
+				//if (!renderer::D3D11Init(renderContext))
+				//{
+				//	return false;
+				//}
 
-			break;
-		}
-		case CGRendererType::Direct3D12:
-			break;
-		case CGRendererType::OpenGL:
-		{
-			if (!renderer::OpenGLInit(renderContext, debug))
+				break;
+			}
+			case CGRendererType::Direct3D12:
+				break;
+			case CGRendererType::OpenGL:
 			{
-				return false;
-			}
+				if (!renderer::ContextOps::OpenGLInit(renderContext, debug))
+				{
+					return false;
+				}
 
-			break;
-		}
-		case CGRendererType::Vulkan:
-			break;
+				break;
+			}
+			case CGRendererType::Vulkan:
+				break;
+			default:
+				break;
 		}
 
 		return true;
@@ -77,55 +75,60 @@ namespace cg
 
 		switch (info.rendererType)
 		{
-		case CGRendererType::None:
-			break;
-		case CGRendererType::Direct3D11:
-		{
-			if (!renderer::CreateD3D11Context(swapchainConfig, window.nwh, renderContext, info.debug))
+			case CGRendererType::None:
+				break;
+			case CGRendererType::Direct3D11:
 			{
-				return false;
-			}
+				//if (!renderer::CreateD3D11Context(swapchainConfig, window.nwh, renderContext, info.debug))
+				//{
+				//	return false;
+				//}
 
-			break;
-		}
-		case CGRendererType::Direct3D12:
-			break;
-		case CGRendererType::OpenGL:
-		{
-			if (!renderer::CreateOpenGLContext(window.winptr, renderContext, info.debug))
+				break;
+			}
+			case CGRendererType::Direct3D12:
+				break;
+			case CGRendererType::OpenGL:
 			{
-				return false;
-			}
+				if (!renderer::ContextOps::CreateOpenGLContext(window.winptr, renderContext, info.debug))
+				{
+					return false;
+				}
 
-			break;
-		}
-		case CGRendererType::Vulkan:
-			break;
+				break;
+			}
+			case CGRendererType::Vulkan:
+				break;
+			default:
+				break;
 		}
 
 		return true;
 	}
 
-	void SetupRenderFunctions(const CGRendererType rendererType, renderer::CGRenderer& renderer, renderer::CGRenderContext& renderContext)
+	void SetupRenderFunctions(const CGRendererType rendererType, renderer::CGRenderer& renderer, [[maybe_unused]] renderer::CGRenderContext& renderContext)
 	{
 		switch (rendererType)
 		{
-		case CGRendererType::None:
-			break;
-		case CGRendererType::Direct3D11:
-		{
-			renderer::SetupD3D11RenderFunctions(renderer, renderContext);
-			break;
-		}
-		case CGRendererType::Direct3D12:
-			break;
-		case CGRendererType::OpenGL:
-		{
-			renderer::SetupOpenGLRenderFunctions(renderer);
-			break;
-		}
-		case CGRendererType::Vulkan:
-			break;
+			case CGRendererType::None:
+				break;
+			case CGRendererType::Direct3D11:
+			{
+				//renderer::SetupD3D11RenderFunctions(renderer, renderContext);
+
+				break;
+			}
+			case CGRendererType::Direct3D12:
+				break;
+			case CGRendererType::OpenGL:
+			{
+				renderer::SetupOpenGLRenderFunctions(renderer);
+				break;
+			}
+			case CGRendererType::Vulkan:
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -136,6 +139,6 @@ namespace cg
 
 	CGEngine::~CGEngine()
 	{
-		m_renderContext.Shutdown();
+		m_renderContext.apiFunctions.shutdown();
 	}
 }

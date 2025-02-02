@@ -28,8 +28,14 @@ namespace cg
 
 		bool IsRunning() const;
 
+
 		const renderer::CGRenderContext& GetRenderContext() const { return m_renderContext; }
+		renderer::CGRenderContext& GetRenderContext() { return m_renderContext; }
+
 		const renderer::CGRenderer& GetRenderer() const { return m_renderer; }
+
+		const core::CGWindow& GetWindow() const { return m_window; }
+		core::CGWindow& GetWindow() { return m_window; }
 	private:
 		renderer::CGRenderContext m_renderContext;
 		renderer::CGRenderer m_renderer;

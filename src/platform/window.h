@@ -5,19 +5,10 @@
 // window.h
 namespace cg
 {
-	enum class CGRendererType : uint32_t;
+	enum class CGRendererType : uint8_t;
 
 	namespace core
 	{
-		enum class CGWindowFlags : uint32_t
-		{
-			None = 0,
-			Resizable = 1 << 0,
-			Fullscreen = 1 << 1,
-			Borderless = 1 << 2,
-			// etc...
-		};
-
 		struct CGWindow
 		{
 			void* winptr = nullptr; // Window handle for window libraries (GLFW, SDL, etc.)
@@ -33,3 +24,4 @@ namespace cg
 	void PollEvents();
 	bool ShouldCloseCGWindow(void* winptr);
 }
+

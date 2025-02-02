@@ -1,4 +1,5 @@
 #include <GLFW/glfw3.h>
+#include <cstdio>
 
 #ifdef _WIN32
 	#define GLFW_EXPOSE_NATIVE_WIN32
@@ -7,7 +8,6 @@
 
 #include "window.h"
 #include "types.h"
-#include "core/logger.hpp"
 
 // window_glfw.cpp
 namespace cg
@@ -23,7 +23,7 @@ namespace cg
 			const char* error = nullptr;
 			glfwGetError(&error);
 
-			core::CG_ERROR("GLFW Error: {0}", error);
+			printf("GLFW Error: %s", error);
 
 			return false;
 		}
@@ -37,7 +37,7 @@ namespace cg
 			const char* error = nullptr;
 			glfwGetError(&error);
 
-			core::CG_ERROR("GLFW Error: {0}", error);
+			printf("GLFW Error: %s", error);
 
 			return false;
 		}

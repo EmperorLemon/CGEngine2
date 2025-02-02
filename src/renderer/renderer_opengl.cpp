@@ -27,16 +27,38 @@ namespace cg::renderer
 		return glFlags;
 	}
 
+	static void ClearColor(const uint32_t flags, const float r, const float g, const float b, const float a)
+	{
+		glClearColor(r, g, b, a);
+		glClear(MapClearFlags(flags));
+	}
+
+	static void BindVertexArray(const uint32_t vertexArray)
+	{
+		glBindVertexArray(vertexArray);
+	}
+
+	static void DrawArrays(const int32_t count)
+	{
+		glDrawArrays(GL_TRIANGLES, 0, count);
+	}
+
+	static void DrawElements(const int32_t count)
+	{
+		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, nullptr);
+	}
+
+	static void Submit(const uint32_t shaderProgram)
+	{
+		glUseProgram(shaderProgram);
+	}
+
 	void SetupOpenGLRenderFunctions(CGRenderer& renderer)
 	{
-		CGRenderAPIFunctions renderAPIFunctions;
-
-		renderAPIFunctions.ClearColor = [](const uint32_t flags, const float r, const float g, const float b, const float a)
-		{
-			glClearColor(r, g, b, a);
-			glClear(MapClearFlags(flags));
-		};
-
-		renderer.SetRenderAPIFunctions(renderAPIFunctions);
+		renderer.renderAPIFunctions.clearColor = ClearColor;
+		renderer.renderAPIFunctions.bindVertexBuffer = BindVertexArray;
+		renderer.renderAPIFunctions.drawArrays = DrawArrays;
+		renderer.renderAPIFunctions.drawElements = DrawElements;
+		renderer.renderAPIFunctions.submit = Submit;
 	}
 }

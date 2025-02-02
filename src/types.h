@@ -5,7 +5,7 @@
 // types.h
 namespace cg
 {
-	enum class CGRendererType : uint32_t
+	enum class CGRendererType : uint8_t
 	{
 		None = 0,
 		Direct3D11,
