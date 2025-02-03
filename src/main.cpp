@@ -14,7 +14,7 @@ constexpr int WINDOW_HEIGHT = 600;
 //};
 
 constexpr float vertices[12] = { 
-   0.5f,  0.5f, 0.0f,							  
+	 0.5f,  0.5f, 0.0f,							  
 	 0.5f, -0.5f, 0.0f,
 	-0.5f, -0.5f, 0.0f,
 	-0.5f,  0.5f, 0.0f
@@ -32,8 +32,8 @@ using namespace cg::renderer;
 // main.cpp
 int main()
 {
-	CGEngineCreateInfo info;
-	info.rendererType = CGRendererType::Direct3D11;
+	CGEngineCreateInfo info = {};
+	info.rendererType = CGRendererType::OpenGL;
 	info.resolution.width = WINDOW_WIDTH;
 	info.resolution.height = WINDOW_HEIGHT;
 	info.debug = true;
@@ -61,22 +61,26 @@ int main()
 
 	printf("Vertex shader index: %d\n", shaderIndices[0]);
 	printf("Fragment shader index: %d\n", shaderIndices[1]);
-	printf("Shader program index: %d", shaderProgramIndex);
+	printf("Shader program index: %d\n", shaderProgramIndex);
 
-	[[maybe_unused]] const int32_t elementCount = sizeof(indices) / sizeof(indices[0]);
-	[[maybe_unused]] const uint32_t vertexBuffer = context.bufferPool.vertexArrays[vertexBufferIndex];
-	[[maybe_unused]] const uint32_t shaderProgram = context.shaderPool.shaderPrograms[shaderProgramIndex];
+	const uint32_t vertexBuffer = context.bufferPool.vertexArrays[vertexBufferIndex];
+	const int32_t elementCount = sizeof(indices) / sizeof(indices[0]);
+	const uint32_t shaderProgram = context.shaderPool.shaderPrograms[shaderProgramIndex];
 
-	const CGRenderCommand commands[] = { {RenderOps::ClearView(0, CG_CLEAR_COLOR, CG_RED)}};
-	AddRenderCommands(renderer, 1, commands);
+	const CGRenderCommand commands[] = { 
+		{ RenderOps::ClearView(0, CG_CLEAR_COLOR, CG_RED) },
+		{ RenderOps::SetVertexBuffer(vertexBuffer) },
+		{ RenderOps::DrawIndexed(elementCount) },
+		{ RenderOps::Submit(0, shaderProgram) }
+	};
+
+	const int16_t commandCount = sizeof(commands) / sizeof(commands[0]);
+
+	AddRenderCommands(renderer, commandCount, commands);
 
 	while (engine.IsRunning())
 	{
 		cg::PollEvents();
-
-		//renderer.BindVertexBuffer(vertexBuffer);
-		//renderer.DrawElements(elementCount);
-		//renderer.Submit(shaderProgram);
 
 		SubmitRenderCommands(renderer);
 

@@ -33,7 +33,7 @@ namespace cg::renderer::RenderOps::OpenGL
 		glClear(MapClearFlags(flags));
 	}
 
-	static void BindVertexArray(const uint32_t vertexArray)
+	void OpenGLBindVertexArray(const uint32_t vertexArray)
 	{
 		glBindVertexArray(vertexArray);
 	}
@@ -43,13 +43,13 @@ namespace cg::renderer::RenderOps::OpenGL
 		glDrawArrays(GL_TRIANGLES, 0, count);
 	}
 
-	static void DrawElements(const int32_t count)
+	void OpenGLDrawElements(const int32_t count)
 	{
 		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, nullptr);
 	}
 
-	static void Submit(const uint32_t shaderProgram)
+	void OpenGLUseProgram(const uint32_t program)
 	{
-		glUseProgram(shaderProgram);
+		glUseProgram(program);
 	}
 }

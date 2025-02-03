@@ -27,16 +27,16 @@ namespace cg::renderer
 	{
 		CG_NONE = 0,
 		CG_CLEAR = 1,
-		CG_DRAW_VERTICES = 2,
-		CG_DRAW_INDEXED = 3,
-		CG_SET_VERTEX_BUFFER = 4,
-		CG_SET_INDEX_BUFFER = 5,
-		CG_SET_SHADER = 6
+		CG_SET_VERTEX_BUFFER = 2,
+		CG_SET_INDEX_BUFFER = 3,
+		CG_DRAW_VERTICES = 4,
+		CG_DRAW_INDEXED = 5,
+		CG_SUBMIT = 6,
 	};
 
 	struct alignas(16) CGRenderCommand
 	{
-		CGRenderCommandType commandType = CG_NONE;
+		CGRenderCommandType commandType = CGRenderCommandType::CG_NONE;
 		uint8_t padding[4] = {};
 
 		union {
@@ -45,6 +45,16 @@ namespace cg::renderer
 				CGClearFlags clearFlags;
 				int16_t view;
 			} clear;
+			struct {
+				uint32_t vertexBuffer;
+			} setVertexBuffer;
+			struct {
+				int32_t count;
+			} drawIndexed;
+			struct {
+				uint32_t program;
+				int16_t view;
+			} submit;
 		} params;
 	};
 
@@ -63,10 +73,16 @@ namespace cg::renderer
 	namespace RenderOps
 	{
 		CGRenderCommand ClearView(int16_t view, CGClearFlags flags, uint32_t color);
+		CGRenderCommand SetVertexBuffer(uint32_t vertexBuffer);
+		CGRenderCommand DrawIndexed(int32_t count);
+		CGRenderCommand Submit(int16_t view, uint32_t program);
 
 		namespace OpenGL
 		{
 			void OpenGLClearView(CGClearFlags flags, float r, float g, float b, float a);
+			void OpenGLBindVertexArray(uint32_t vertexArray);
+			void OpenGLDrawElements(int32_t count);
+			void OpenGLUseProgram(uint32_t program);
 		}
 
 		namespace D3D11
