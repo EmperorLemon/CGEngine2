@@ -3,9 +3,9 @@
 #include "renderer.h"
 
 // renderer_opengl.cpp
-namespace cg::renderer
+namespace cg::renderer::RenderOps::OpenGL
 {
-	static GLbitfield MapClearFlags(const uint32_t flags)
+	static GLbitfield MapClearFlags(const CGClearFlags flags)
 	{
 		GLbitfield glFlags = 0u;
 
@@ -27,7 +27,7 @@ namespace cg::renderer
 		return glFlags;
 	}
 
-	static void ClearColor(const uint32_t flags, const float r, const float g, const float b, const float a)
+	void OpenGLClearView(const CGClearFlags flags, const float r, const float g, const float b, const float a)
 	{
 		glClearColor(r, g, b, a);
 		glClear(MapClearFlags(flags));
@@ -51,14 +51,5 @@ namespace cg::renderer
 	static void Submit(const uint32_t shaderProgram)
 	{
 		glUseProgram(shaderProgram);
-	}
-
-	void SetupOpenGLRenderFunctions(CGRenderer& renderer)
-	{
-		renderer.renderAPIFunctions.clearColor = ClearColor;
-		renderer.renderAPIFunctions.bindVertexBuffer = BindVertexArray;
-		renderer.renderAPIFunctions.drawArrays = DrawArrays;
-		renderer.renderAPIFunctions.drawElements = DrawElements;
-		renderer.renderAPIFunctions.submit = Submit;
 	}
 }

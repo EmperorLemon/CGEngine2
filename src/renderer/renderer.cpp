@@ -5,56 +5,139 @@ namespace cg::renderer
 {
 	constexpr float ONE_OVER_255 = 0.003921568627451f;
 
-	void CGRenderer::ClearView(const uint32_t flags, const float r, const float g, const float b, const float a) const
+	static void ProcessOpenGLRenderCommands(const CGRenderer& renderer);
+	static void ProcessD3D11RenderCommands(const CGRenderer& renderer);
+
+	CGRenderer::CGRenderer(CGRenderContext& ctx) : renderContext(ctx)
 	{
-		if (renderAPIFunctions.clearColor)
+
+	}  
+
+	bool AddRenderCommands(CGRenderer& renderer, int16_t count, const CGRenderCommand commands[])
+	{
+		if (count <= 0 || commands == nullptr || renderer.renderCommandCount + count > CG_MAX_RENDER_COMMANDS)
 		{
-			renderAPIFunctions.clearColor(flags, r, g, b, a);
+			return false;
+		}
+
+		int16_t startIndex = renderer.renderCommandCount;
+		for (int16_t i = 0; i < count; ++i)
+		{
+			renderer.renderCommands[startIndex + i] = commands[i];
+		}
+
+		renderer.renderCommandCount += count;
+
+		return true;
+	}
+
+	void SubmitRenderCommands(const CGRenderer& renderer)
+	{
+		switch (renderer.renderContext.rendererType)
+		{
+			case CGRendererType::None:
+			{
+				break;
+			}
+			case CGRendererType::Direct3D11:
+			{
+				ProcessD3D11RenderCommands(renderer);
+				break;
+			}
+			case CGRendererType::Direct3D12:
+			{
+				break;
+			}
+			case CGRendererType::OpenGL:
+			{
+				ProcessOpenGLRenderCommands(renderer);
+				break;
+			}
+			case CGRendererType::Vulkan:
+			{
+				break;
+			}
 		}
 	}
 
-	void CGRenderer::ClearView(const uint32_t flags, const uint32_t color) const
+	void ProcessOpenGLRenderCommands(const CGRenderer& renderer)
 	{
-		float r = ((color >> 24) & 0xFF) * ONE_OVER_255;
-		float g = ((color >> 16) & 0xFF) * ONE_OVER_255;
-		float b = ((color >> 8) & 0xFF) * ONE_OVER_255;
-		float a = (color & 0xFF) * ONE_OVER_255;
-
-		if (renderAPIFunctions.clearColor)
+		for (uint16_t i = 0; i < renderer.renderCommandCount; ++i)
 		{
-			renderAPIFunctions.clearColor(flags, r, g, b, a);
+			const CGRenderCommand& command = renderer.renderCommands[i];
+
+			switch (command.commandType)
+			{
+				case CG_NONE:
+				{
+					break;
+				}
+				case CG_CLEAR:
+				{
+					uint32_t color = command.params.clear.color;
+
+					RenderOps::OpenGL::OpenGLClearView(
+						command.params.clear.clearFlags,
+						((color >> 24) & 0xFF) * ONE_OVER_255,
+						((color >> 16) & 0xFF) * ONE_OVER_255,
+						((color >> 8) & 0xFF) * ONE_OVER_255,
+						(color & 0xFF) * ONE_OVER_255
+					);
+
+					continue;
+				}
+			}
+
+			break;
 		}
 	}
 
-	void CGRenderer::BindVertexBuffer(const uint32_t vertexBuffer) const
+	void ProcessD3D11RenderCommands(const CGRenderer& renderer)
 	{
-		if (renderAPIFunctions.bindVertexBuffer)
+		for (uint16_t i = 0; i < renderer.renderCommandCount; ++i)
 		{
-			renderAPIFunctions.bindVertexBuffer(vertexBuffer);
+			const CGRenderCommand& command = renderer.renderCommands[i];
+
+			switch (command.commandType)
+			{
+				case CG_NONE:
+				{
+					break;
+				}
+				case CG_CLEAR:
+				{
+					uint32_t color = command.params.clear.color;
+
+					RenderOps::D3D11::D3D11ClearView(
+						renderer.renderContext.d3d11Context.deviceContext,
+						renderer.renderContext.d3d11Context.renderTargets[command.params.clear.view],
+						command.params.clear.clearFlags,
+						((color >> 24) & 0xFF) * ONE_OVER_255,
+						((color >> 16) & 0xFF) * ONE_OVER_255,
+						((color >> 8) & 0xFF) * ONE_OVER_255,
+						(color & 0xFF) * ONE_OVER_255
+					);
+
+					continue;
+				}
+			}
+
+			break;
 		}
 	}
 
-	void CGRenderer::DrawArrays(const int32_t count) const
+	namespace RenderOps
 	{
-		if (renderAPIFunctions.drawArrays)
+		CGRenderCommand ClearView(const int16_t view, const CGClearFlags flags, const uint32_t color)
 		{
-			renderAPIFunctions.drawArrays(count);
-		}
-	}
+			CGRenderCommand command = {};
 
-	void CGRenderer::DrawElements(const int32_t count) const
-	{
-		if (renderAPIFunctions.drawElements)
-		{
-			renderAPIFunctions.drawElements(count);
-		}
-	}
+			command.commandType = CG_CLEAR;
+			command.params.clear.view = view;
+			command.params.clear.clearFlags = flags;
+			command.params.clear.color = color;
 
-	void CGRenderer::Submit(const uint32_t shaderProgram) const
-	{
-		if (renderAPIFunctions.submit)
-		{
-			renderAPIFunctions.submit(shaderProgram);
+			return command;
 		}
 	}
 }

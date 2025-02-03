@@ -1,27 +1,26 @@
+#include <d3d11.h>
+#include <dxgi.h>
+
 #include "renderer.h"
 
-#include "context/context_d3d11.h"
-
 // renderer_d3d11.cpp
-namespace cg::renderer
+namespace cg::renderer::RenderOps::D3D11
 {
-	//void SetupD3D11RenderFunctions(CGRenderer& renderer, const CGRenderContext& context)
-	//{
-	//	auto data = context.GetData<CGRendererType::Direct3D11>();
+	void D3D11ClearView(
+		void* deviceCtx, void* renderTV,
+		CGClearFlags clearFlags,
+		const float r, const float g, const float b, const float a)
+	{
+		if (!deviceCtx || !renderTV)
+		{
+			return;
+		}
 
-	//	CGRenderAPIFunctions renderAPIFunctions;
+		const auto deviceContext = static_cast<ID3D11DeviceContext*>(deviceCtx);
+		const auto renderTargetView = static_cast<ID3D11RenderTargetView*>(renderTV);
 
-	//	renderAPIFunctions.ClearColor =
-	//		[deviceContext = data->deviceContext, renderTargetView = data->renderTargetView]
-	//		([[maybe_unused]] const uint32_t flags, const float r, const float g, const float b, const float a)
-	//	{
-	//		if (deviceContext && renderTargetView)
-	//		{
-	//			float color[4] = { r, g, b, a };
-	//			deviceContext->ClearRenderTargetView(renderTargetView.Get(), color);
-	//		}
-	//	};
+		const float rgba[4] = { r, g, b, a };
 
-	//	renderer.SetRenderAPIFunctions(renderAPIFunctions);
-	//}
+		deviceContext->ClearRenderTargetView(renderTargetView, rgba);
+	}
 }

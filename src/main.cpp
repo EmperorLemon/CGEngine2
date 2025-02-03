@@ -33,14 +33,14 @@ using namespace cg::renderer;
 int main()
 {
 	CGEngineCreateInfo info;
-	info.rendererType = CGRendererType::OpenGL;
+	info.rendererType = CGRendererType::Direct3D11;
 	info.resolution.width = WINDOW_WIDTH;
 	info.resolution.height = WINDOW_HEIGHT;
 	info.debug = true;
 
 	CGEngine engine(info);
 
-	const auto& renderer = engine.GetRenderer();
+	auto& renderer = engine.GetRenderer();
 	auto& context = engine.GetRenderContext();
 
 	CGVertexLayout vertexLayout = {};
@@ -49,7 +49,6 @@ int main()
 
 	const int32_t vertexBufferIndex = BufferOps::CreateVertexBuffer(info.rendererType, context.bufferPool, sizeof(vertices), vertices, vertexLayout);
 	const int32_t indexBufferIndex = BufferOps::CreateIndexBuffer(info.rendererType, context.bufferPool, sizeof(indices), indices);
-	BufferOps::AttachOpenGLIndexBuffer(context.bufferPool, indexBufferIndex);
 
 	printf("\n\n");
 	printf("Vertex buffer index: %d\n", vertexBufferIndex);
@@ -64,20 +63,24 @@ int main()
 	printf("Fragment shader index: %d\n", shaderIndices[1]);
 	printf("Shader program index: %d", shaderProgramIndex);
 
-	const uint32_t vertexBuffer = context.bufferPool.vertexArrays[vertexBufferIndex];
-	const uint32_t shaderProgram = context.shaderPool.shaderPrograms[shaderProgramIndex];
+	[[maybe_unused]] const int32_t elementCount = sizeof(indices) / sizeof(indices[0]);
+	[[maybe_unused]] const uint32_t vertexBuffer = context.bufferPool.vertexArrays[vertexBufferIndex];
+	[[maybe_unused]] const uint32_t shaderProgram = context.shaderPool.shaderPrograms[shaderProgramIndex];
+
+	const CGRenderCommand commands[] = { {RenderOps::ClearView(0, CG_CLEAR_COLOR, CG_RED)}};
+	AddRenderCommands(renderer, 1, commands);
 
 	while (engine.IsRunning())
 	{
 		cg::PollEvents();
 
-		renderer.ClearView(CG_CLEAR_COLOR, 0xFF0000FF);
+		//renderer.BindVertexBuffer(vertexBuffer);
+		//renderer.DrawElements(elementCount);
+		//renderer.Submit(shaderProgram);
 
-		renderer.BindVertexBuffer(vertexBuffer);
-		renderer.DrawElements(6);
-		renderer.Submit(shaderProgram);
+		SubmitRenderCommands(renderer);
 
-		FrameOps::Present(context.apiFunctions, engine.GetWindow().winptr);
+		FrameOps::Present(context, engine.GetWindow());
 	}
 
 	return 0;

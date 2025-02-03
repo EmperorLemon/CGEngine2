@@ -2,7 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <cstdio>
 
-#include "context.hpp"
+#include "context.h"
 #include "types.h"
 #include "platform/window.h"
 
@@ -10,7 +10,7 @@
 namespace cg::renderer::ContextOps
 {
 	static void SwapBuffers(void* window);
-	static void QueryDevice(CGDeviceProperties& deviceProperties);
+	static void QueryPhysicalDevice(CGPhysicalDeviceProperties& deviceProperties);
 
 	static void APIENTRY DebugMessageCallback(const GLenum source, const GLenum type, const GLuint id, const GLenum severity, [[maybe_unused]] const GLsizei length, const GLchar* message, [[maybe_unused]] const void* userData)
 	{
@@ -133,21 +133,21 @@ namespace cg::renderer::ContextOps
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 		}
 
-		QueryDevice(renderContext.deviceProperties);
+		QueryPhysicalDevice(renderContext.deviceProperties);
 		SetupOpenGLContextFunctions(renderContext);
 
 		return true;
 	}
 
-	void QueryDevice(CGDeviceProperties& deviceProperties)
+	void QueryPhysicalDevice(CGPhysicalDeviceProperties& deviceProperties)
 	{
-		deviceProperties.vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
+		const char* vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
 		deviceProperties.renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
-		deviceProperties.version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
-		deviceProperties.glslVersion = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
+		const char* version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
+		const char* shaderVersion = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
 
-		glGetIntegerv(GL_MAJOR_VERSION, &deviceProperties.versionMajor);
-		glGetIntegerv(GL_MINOR_VERSION, &deviceProperties.versionMinor);
+		//glGetIntegerv(GL_MAJOR_VERSION, &deviceProperties.versionMajor);
+		//glGetIntegerv(GL_MINOR_VERSION, &deviceProperties.versionMinor);
 
 		GLint numExtensions;
 		glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
@@ -159,13 +159,13 @@ namespace cg::renderer::ContextOps
 			"Renderer: %s\n"
 			"OpenGL Version: %s\n"
 			"GLSL Version: %s",
-			deviceProperties.vendor.data(), deviceProperties.renderer.data(),
-			deviceProperties.version.data(), deviceProperties.glslVersion.data()
+			vendor, deviceProperties.renderer,
+			version, shaderVersion
 		);
 
 		for (GLint i = 0; i < numExtensions; ++i)
 		{
-			const std::string_view extensionName = reinterpret_cast<const char*>(glGetStringi(GL_EXTENSIONS, i));
+			const char* extensionName = reinterpret_cast<const char*>(glGetStringi(GL_EXTENSIONS, i));
 		}
 	}
 
@@ -177,5 +177,11 @@ namespace cg::renderer::ContextOps
 	void SetupOpenGLContextFunctions(CGRenderContext& renderContext)
 	{
 		renderContext.apiFunctions.present = SwapBuffers;
+	}
+
+	void DestroyOpenGLContext(CGRenderContext& renderContext)
+	{
+		//DestroyOpenGLBuffers(renderContext.bufferPool);
+		//DestroyOpenGLShaderPrograms();
 	}
 }

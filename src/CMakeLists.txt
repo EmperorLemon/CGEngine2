@@ -4,12 +4,13 @@ add_subdirectory(renderer)
 
 target_sources(${PROJECT_NAME} 
 	PRIVATE 
+		types.h
+
 		${IO}
 		${PLATFORM}
 		${RENDERER}
 
 		pch.h
-		types.h
 
 		cgengine.h
 		cgengine.cpp

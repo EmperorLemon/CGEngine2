@@ -6,17 +6,16 @@ namespace cg
 	static bool InitGraphicsAPI(CGRendererType rendererType, renderer::CGRenderContext& renderContext, bool debug);
 	static bool CreateWindow(int32_t width, int32_t height, core::CGWindow& window);
 	static bool CreateRenderContext(const CGEngineCreateInfo& info, core::CGWindow& window, renderer::CGRenderContext& renderContext);
-	static void SetupRenderFunctions(CGRendererType rendererType, renderer::CGRenderer& renderer, renderer::CGRenderContext& renderContext);
 
-	CGEngine::CGEngine(const CGEngineCreateInfo& info)
+	CGEngine::CGEngine(const CGEngineCreateInfo& info) : m_renderer(m_renderContext)
 	{
+		m_renderContext.rendererType = info.rendererType;
+
 		InitGraphicsAPI(info.rendererType, m_renderContext, info.debug);
 
 		CreateWindow(static_cast<int32_t>(info.resolution.width), static_cast<int32_t>(info.resolution.height), m_window);
 
 		CreateRenderContext(info, m_window, m_renderContext);
-
-		SetupRenderFunctions(info.rendererType, m_renderer, m_renderContext);
 	}
 
 	bool InitGraphicsAPI(const CGRendererType rendererType, renderer::CGRenderContext& renderContext, const bool debug)
@@ -24,31 +23,25 @@ namespace cg
 		switch (rendererType)
 		{
 			case CGRendererType::None:
+			{
 				break;
+			}
 			case CGRendererType::Direct3D11:
 			{
-				//if (!renderer::D3D11Init(renderContext))
-				//{
-				//	return false;
-				//}
-
-				break;
+				return renderer::ContextOps::D3D11Init(renderContext);
 			}
 			case CGRendererType::Direct3D12:
-				break;
-			case CGRendererType::OpenGL:
 			{
-				if (!renderer::ContextOps::OpenGLInit(renderContext, debug))
-				{
-					return false;
-				}
-
 				break;
 			}
+			case CGRendererType::OpenGL:
+			{
+				return renderer::ContextOps::OpenGLInit(renderContext, debug);
+			}
 			case CGRendererType::Vulkan:
+			{
 				break;
-			default:
-				break;
+			}
 		}
 
 		return true;
@@ -56,17 +49,12 @@ namespace cg
 
 	bool CreateWindow(int32_t width, int32_t height, core::CGWindow& window)
 	{
-		if (!CreateCGWindow(width, height, "CGEngine Window", window))
-		{
-			return false;
-		}
-
-		return true;
+		return CreateCGWindow(width, height, "CGEngine Window", window);
 	}
 
 	bool CreateRenderContext(const CGEngineCreateInfo& info, core::CGWindow& window, renderer::CGRenderContext& renderContext)
 	{
-		renderer::CGSwapchainConfig swapchainConfig;
+		renderer::CGSwapchainConfig swapchainConfig = {};
 		swapchainConfig.bufferCount = 2;
 		swapchainConfig.width = info.resolution.width;
 		swapchainConfig.height = info.resolution.height;
@@ -76,60 +64,28 @@ namespace cg
 		switch (info.rendererType)
 		{
 			case CGRendererType::None:
+			{
 				break;
+			}
 			case CGRendererType::Direct3D11:
 			{
-				//if (!renderer::CreateD3D11Context(swapchainConfig, window.nwh, renderContext, info.debug))
-				//{
-				//	return false;
-				//}
-
-				break;
+				return renderer::ContextOps::CreateD3D11Context(swapchainConfig, window.nwh, renderContext, info.debug);
 			}
 			case CGRendererType::Direct3D12:
-				break;
-			case CGRendererType::OpenGL:
 			{
-				if (!renderer::ContextOps::CreateOpenGLContext(window.winptr, renderContext, info.debug))
-				{
-					return false;
-				}
-
 				break;
 			}
+			case CGRendererType::OpenGL:
+			{
+				return renderer::ContextOps::CreateOpenGLContext(window.winptr, renderContext, info.debug);
+			}
 			case CGRendererType::Vulkan:
+			{
 				break;
-			default:
-				break;
+			}
 		}
 
 		return true;
-	}
-
-	void SetupRenderFunctions(const CGRendererType rendererType, renderer::CGRenderer& renderer, [[maybe_unused]] renderer::CGRenderContext& renderContext)
-	{
-		switch (rendererType)
-		{
-			case CGRendererType::None:
-				break;
-			case CGRendererType::Direct3D11:
-			{
-				//renderer::SetupD3D11RenderFunctions(renderer, renderContext);
-
-				break;
-			}
-			case CGRendererType::Direct3D12:
-				break;
-			case CGRendererType::OpenGL:
-			{
-				renderer::SetupOpenGLRenderFunctions(renderer);
-				break;
-			}
-			case CGRendererType::Vulkan:
-				break;
-			default:
-				break;
-		}
 	}
 
 	bool CGEngine::IsRunning() const
@@ -140,5 +96,33 @@ namespace cg
 	CGEngine::~CGEngine()
 	{
 		m_renderContext.apiFunctions.shutdown();
+
+		switch (m_renderContext.rendererType)
+		{
+			case CGRendererType::None:
+			{
+				break;
+			}
+			case CGRendererType::Direct3D11:
+			{
+				renderer::ContextOps::DestroyD3D11Context(m_renderContext);
+				break;
+			}
+			case CGRendererType::Direct3D12:
+			{
+				break;
+			}
+			case CGRendererType::OpenGL:
+			{
+				renderer::ContextOps::DestroyOpenGLContext(m_renderContext);
+				break; 
+			}
+			case CGRendererType::Vulkan:
+			{
+				break;
+			}
+		}
+
+		
 	}
 }

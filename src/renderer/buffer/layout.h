@@ -53,6 +53,8 @@ namespace cg::renderer
 			case CGDataType::Float3:  return 3 * sizeof(float);
 			case CGDataType::Float4:  return 4 * sizeof(float);
 		}
+
+		return -1;
 	}
 
 	constexpr int32_t GetByteStride(const CGVertexLayout& layout)
@@ -80,6 +82,7 @@ namespace cg::renderer
 			case CGDataType::Float2: return 2;
 			case CGDataType::Float3: return 3;
 			case CGDataType::Float4: return 4;
+			default: break;
 		}
 
 		return -1;

@@ -3,7 +3,7 @@
 #include <glad/gl.h>
 
 // buffer_opengl.cpp
-namespace cg::renderer::BufferOps
+namespace cg::renderer::BufferOps::OpenGL
 {
 	static constexpr GLenum GetAttributeType(const CGDataType dataType)
 	{

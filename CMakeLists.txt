@@ -54,6 +54,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
         -Wno-exit-time-destructors
         -Wno-switch-enum
         -Wno-unsafe-buffer-usage
+        -Wno-switch-default
         # GPU-friendly optimizations
         $<$<CONFIG:Release>:
             -march=native

@@ -35,13 +35,15 @@ namespace cg::renderer
 		int32_t CreateVertexBuffer(CGRendererType rendererType, CGVIBufferPool& bufferPool, int32_t vertexSize, const void* vertexData, CGVertexLayout& vertexLayout);
 		int32_t CreateIndexBuffer(CGRendererType rendererType, CGVIBufferPool& bufferPool, int32_t indexSize, const void* indexData);
 
-
-		int32_t CreateOpenGLVertexBuffer(CGVIBufferPool& viBufferPool, int32_t vertexSize, const void* vertexData);
-		int32_t CreateOpenGLIndexBuffer(CGVIBufferPool& viBufferPool, int32_t indexSize, const void* indexData);
-		int32_t CreateOpenGLVertexArray(CGVIBufferPool& viBufferPool, int32_t vertexBufferIdx, CGVertexLayout& vertexLayout);
-		int32_t AttachOpenGLIndexBuffer(CGVIBufferPool& viBufferPool, int32_t indexBufferIdx);
-
 		void DestroyVertexBuffers(CGRendererType rendererType, CGVIBufferPool& bufferPool);
 		void DestroyIndexBuffers(CGRendererType rendererType, CGVIBufferPool& bufferPool);
+
+		namespace OpenGL
+		{
+			int32_t CreateOpenGLVertexBuffer(CGVIBufferPool& viBufferPool, int32_t vertexSize, const void* vertexData);
+			int32_t CreateOpenGLIndexBuffer(CGVIBufferPool& viBufferPool, int32_t indexSize, const void* indexData);
+			int32_t CreateOpenGLVertexArray(CGVIBufferPool& viBufferPool, int32_t vertexBufferIdx, CGVertexLayout& vertexLayout);
+			int32_t AttachOpenGLIndexBuffer(CGVIBufferPool& viBufferPool, int32_t indexBufferIdx);
+		}
 	}
 }

@@ -32,7 +32,7 @@ namespace cg::renderer::ShaderOps
 		return ~0u;
 	}
 
-	constexpr void CheckShaderCompileErrors(const GLuint shader, const CGShaderType shaderType)
+	constexpr static void CheckShaderCompileErrors(const GLuint shader, const CGShaderType shaderType)
 	{
 		GLint  success = 0;
 		GLchar infoLog[1024] = {};

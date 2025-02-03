@@ -22,9 +22,9 @@ namespace cg::renderer::BufferOps
 			}
 			case CGRendererType::OpenGL:
 			{
-				const int32_t vertexBufferIdx = CreateOpenGLVertexBuffer(bufferPool, vertexSize, vertexData);
+				const int32_t vertexBufferIdx = OpenGL::CreateOpenGLVertexBuffer(bufferPool, vertexSize, vertexData);
 				
-				return CreateOpenGLVertexArray(bufferPool, vertexBufferIdx, vertexLayout);
+				return OpenGL::CreateOpenGLVertexArray(bufferPool, vertexBufferIdx, vertexLayout);
 			}
 			case CGRendererType::Vulkan:
 			{
@@ -53,9 +53,9 @@ namespace cg::renderer::BufferOps
 			}
 			case CGRendererType::OpenGL:
 			{
-				const int32_t indexBufferIdx = CreateOpenGLIndexBuffer(bufferPool, indexSize, indexData);
+				const int32_t indexBufferIdx = OpenGL::CreateOpenGLIndexBuffer(bufferPool, indexSize, indexData);
 
-				AttachOpenGLIndexBuffer(bufferPool, indexBufferIdx);
+				OpenGL::AttachOpenGLIndexBuffer(bufferPool, indexBufferIdx);
 
 				return indexBufferIdx;
 			}

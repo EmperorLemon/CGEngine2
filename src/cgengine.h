@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "platform/window.h"
+#include "renderer/context/context.h"
 #include "renderer/renderer.h"
 
 // cgengine.h
@@ -33,6 +34,7 @@ namespace cg
 		renderer::CGRenderContext& GetRenderContext() { return m_renderContext; }
 
 		const renderer::CGRenderer& GetRenderer() const { return m_renderer; }
+		renderer::CGRenderer& GetRenderer() { return m_renderer; }
 
 		const core::CGWindow& GetWindow() const { return m_window; }
 		core::CGWindow& GetWindow() { return m_window; }
