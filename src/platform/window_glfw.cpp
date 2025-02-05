@@ -7,7 +7,6 @@
 #endif
 
 #include "window.h"
-#include "types.h"
 
 // window_glfw.cpp
 namespace cg

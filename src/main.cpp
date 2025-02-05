@@ -33,58 +33,31 @@ using namespace cg::renderer;
 int main()
 {
 	CGEngineCreateInfo info = {};
-	info.rendererType = CGRendererType::OpenGL;
+	info.rendererType = CGRendererType::Direct3D11;
 	info.resolution.width = WINDOW_WIDTH;
 	info.resolution.height = WINDOW_HEIGHT;
 	info.debug = true;
 
 	CGEngine engine(info);
+	CGRenderer& renderer = engine.GetRenderer();
+	[[maybe_unused]] core::CGWindow& window = engine.GetWindow();
 
-	auto& renderer = engine.GetRenderer();
-	auto& context = engine.GetRenderContext();
-
-	CGVertexLayout vertexLayout = {};
-	vertexLayout.vertexElements[0] = { CGVertexAttribute::Position, renderer::CGDataType::Float3 };
-	vertexLayout.elementCount = 1;
-
-	const int32_t vertexBufferIndex = BufferOps::CreateVertexBuffer(info.rendererType, context.bufferPool, sizeof(vertices), vertices, vertexLayout);
-	const int32_t indexBufferIndex = BufferOps::CreateIndexBuffer(info.rendererType, context.bufferPool, sizeof(indices), indices);
-
-	printf("\n\n");
-	printf("Vertex buffer index: %d\n", vertexBufferIndex);
-	printf("Index buffer index: %d\n\n", indexBufferIndex);
-
-	const int32_t shaderIndices[2] = { ShaderOps::CreateShader(info.rendererType, context.shaderPool, io::ReadFile("assets/debug_vs.glsl"), CGShaderType::Vertex),
-									   ShaderOps::CreateShader(info.rendererType, context.shaderPool, io::ReadFile("assets/debug_fs.glsl"), CGShaderType::Fragment) };
-
-	int32_t shaderProgramIndex = ShaderOps::CreateShaderProgram(info.rendererType, context.shaderPool, 2, shaderIndices);
-
-	printf("Vertex shader index: %d\n", shaderIndices[0]);
-	printf("Fragment shader index: %d\n", shaderIndices[1]);
-	printf("Shader program index: %d\n", shaderProgramIndex);
-
-	const uint32_t vertexBuffer = context.bufferPool.vertexArrays[vertexBufferIndex];
-	const int32_t elementCount = sizeof(indices) / sizeof(indices[0]);
-	const uint32_t shaderProgram = context.shaderPool.shaderPrograms[shaderProgramIndex];
-
-	const CGRenderCommand commands[] = { 
-		{ RenderOps::ClearView(0, CG_CLEAR_COLOR, CG_RED) },
-		{ RenderOps::SetVertexBuffer(vertexBuffer) },
-		{ RenderOps::DrawIndexed(elementCount) },
-		{ RenderOps::Submit(0, shaderProgram) }
+	const CGRenderCommand commands[] = 
+	{ 
+		{ RenderOps::SetViewClear(0, CG_CLEAR_COLOR, CG_BLUE) }
 	};
 
-	const int16_t commandCount = sizeof(commands) / sizeof(commands[0]);
+	const int8_t count = sizeof(commands) / sizeof(commands[0]);
 
-	AddRenderCommands(renderer, commandCount, commands);
+	AddRenderCommands(renderer, count, commands);
 
 	while (engine.IsRunning())
 	{
 		cg::PollEvents();
 
-		SubmitRenderCommands(renderer);
+		ExecuteRenderCommands(renderer);
 
-		FrameOps::Present(context, engine.GetWindow());
+		FrameOps::Present(renderer);
 	}
 
 	return 0;

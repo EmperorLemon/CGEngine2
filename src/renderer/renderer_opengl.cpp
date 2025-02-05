@@ -3,9 +3,9 @@
 #include "renderer.h"
 
 // renderer_opengl.cpp
-namespace cg::renderer::RenderOps::OpenGL
+namespace cg::renderer::OpenGL::RenderOps
 {
-	static GLbitfield MapClearFlags(const CGClearFlags flags)
+	static constexpr GLbitfield MapClearFlags(const CGClearFlags flags)
 	{
 		GLbitfield glFlags = 0u;
 
@@ -27,13 +27,13 @@ namespace cg::renderer::RenderOps::OpenGL
 		return glFlags;
 	}
 
-	void OpenGLClearView(const CGClearFlags flags, const float r, const float g, const float b, const float a)
+	void ClearView(const CGClearFlags flags, const float r, const float g, const float b, const float a)
 	{
 		glClearColor(r, g, b, a);
 		glClear(MapClearFlags(flags));
 	}
 
-	void OpenGLBindVertexArray(const uint32_t vertexArray)
+	void BindVertexArray(const uint32_t vertexArray)
 	{
 		glBindVertexArray(vertexArray);
 	}
@@ -43,12 +43,12 @@ namespace cg::renderer::RenderOps::OpenGL
 		glDrawArrays(GL_TRIANGLES, 0, count);
 	}
 
-	void OpenGLDrawElements(const int32_t count)
+	void DrawElements(const int32_t count)
 	{
 		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT, nullptr);
 	}
 
-	void OpenGLUseProgram(const uint32_t program)
+	void UseProgram(const uint32_t program)
 	{
 		glUseProgram(program);
 	}

@@ -52,6 +52,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
         -Wno-padded
         -Wno-deprecated-declarations
         -Wno-exit-time-destructors
+        -Wno-language-extension-token
         -Wno-switch-enum
         -Wno-unsafe-buffer-usage
         -Wno-switch-default
