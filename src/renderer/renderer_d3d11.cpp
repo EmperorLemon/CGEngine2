@@ -1,7 +1,10 @@
 #include <d3d11.h>
+#include <d3dcompiler.h>
 #include <dxgi.h>
 #include <GLFW/glfw3.h>
+
 #include <cstdio>
+#include <cstring>
 
 #include "renderer.h"
 #include "platform/window.h"
@@ -60,7 +63,7 @@ namespace cg::renderer
 			return true;
 		}
 
-		bool CreateDevice(CGRenderDevice& device, CGRenderContext& context, const bool debug)
+		bool CreateDevice(const bool debug, CGRenderDevice& device, CGRenderContext& context)
 		{
 			if (device.api.d3d11.device || context.api.d3d11.context)
 			{
@@ -161,6 +164,26 @@ namespace cg::renderer
 
 		namespace DeviceOps
 		{
+			constexpr static LPCSTR GetShaderTarget(const CGShaderType type)
+			{
+				switch (type)
+				{
+					case CGShaderType::None: break;
+					case CGShaderType::Vertex: return "vs_5_0";
+					case CGShaderType::Fragment: return "ps_5_0";
+					case CGShaderType::TessellationControl: return "hs_5_0";
+					case CGShaderType::TessellationEvaluation: return "ds_5_0";
+					case CGShaderType::Geometry: return "gs_5_0";
+					case CGShaderType::Compute: return "cs_5_0";
+					case CGShaderType::Program: break;
+				}
+
+				return "NULL";
+			}
+
+			static bool CreateVertexShader(ID3D11Device* device, ID3DBlob* vsBlob, CGShader& vsShader);
+			static bool CreatePixelShader(ID3D11Device* device, ID3DBlob* psBlob, CGShader& psShader);
+
 			bool CreateAdapter(CGRenderDevice& device)
 			{
 				if (device.api.d3d11.adapter)
@@ -230,7 +253,7 @@ namespace cg::renderer
 				return true;
 			}
 
-			bool CreateSwapchain(CGRenderContext& context, const core::CGWindow& window)
+			bool CreateSwapchain(const core::CGWindow& window, CGRenderContext& context)
 			{
 				if (context.api.d3d11.swapchain)
 				{
@@ -264,17 +287,17 @@ namespace cg::renderer
 				return true;
 			}
 
-			bool CreateRenderTargetView(const int8_t view, CGRenderContext& context)
+			bool CreateRenderTargetView(const uint8_t view, CGRenderContext& context)
 			{
-				if (view < 0 || view > context.api.d3d11.renderTargetViewCount ||
-					context.api.d3d11.renderTargetViewCount + 1 > CG_MAX_RENDER_TARGET_VIEWS ||
+				if (view > context.api.d3d11.renderTargetViewCount ||
+					context.api.d3d11.renderTargetViewCount + 1u > CG_MAX_RENDER_TARGET_VIEWS ||
 					context.api.d3d11.renderTargetViews[view] != nullptr)
 				{
 					return false;
 				}
 
 				ID3D11Texture2D* backbuffer = nullptr;
-				HRESULT result = GetD3D11COM<IDXGISwapChain*>(context.api.d3d11.swapchain)->GetBuffer(0, IID_PPV_ARGS(&backbuffer));
+				HRESULT result = GetD3D11COM<IDXGISwapChain*>(context.api.d3d11.swapchain)->GetBuffer(0U, IID_PPV_ARGS(&backbuffer));
 
 				if (FAILED(result))
 				{
@@ -294,6 +317,215 @@ namespace cg::renderer
 
 				backbuffer->Release();
 				context.api.d3d11.renderTargetViewCount++;
+
+				return true;
+			}
+
+			bool CreateShader(const CGRenderContext& context, const CGShaderDesc& desc, CGShader& shader)
+			{
+				shader.type = desc.shaderType;
+
+				ID3DBlob* shaderBlob = nullptr;
+				ID3DBlob* errorBlob = nullptr;
+
+				UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
+
+				if (context.device->debug)
+				{
+					flags |= D3DCOMPILE_DEBUG;
+				}
+
+				LPCSTR target = GetShaderTarget(desc.shaderType);
+
+				HRESULT result = D3DCompileFromFile(
+					desc.filename,					   // .hlsl file
+					nullptr,						   // defines
+					D3D_COMPILE_STANDARD_FILE_INCLUDE, // include header
+					desc.entryPoint,
+					target,							   // target
+					flags, 0U,						   // Flags1, Flags2
+					&shaderBlob,
+					&errorBlob
+				);
+
+				if (FAILED(result))
+				{
+					if (errorBlob)
+					{
+						printf(reinterpret_cast<const char*>(errorBlob->GetBufferPointer()));
+						errorBlob->Release();
+					}
+
+					if (shaderBlob)
+					{
+						shaderBlob->Release();
+					}
+
+					return false;
+				}
+
+				const auto device = GetD3D11COM<ID3D11Device*>(context.device->api.d3d11.device);
+
+				bool valid = false;
+
+				switch (desc.shaderType)
+				{
+					case CGShaderType::None:
+					{
+						break;
+					}
+					case CGShaderType::Vertex:
+					{
+						valid = CreateVertexShader(device, shaderBlob, shader);
+						break;
+					}
+					case CGShaderType::Fragment:
+					{
+						valid = CreatePixelShader(device, shaderBlob, shader);
+						break;
+					}
+				}
+
+				if (errorBlob)
+				{
+					errorBlob->Release();
+				}
+
+				shader.api.d3d11.blob = shaderBlob;
+
+				return valid;
+			}
+
+			bool CreateVertexShader(ID3D11Device* device, ID3DBlob* vsBlob, CGShader& vsShader)
+			{
+				HRESULT result = device->CreateVertexShader(
+					vsBlob->GetBufferPointer(),
+					vsBlob->GetBufferSize(),
+					nullptr,
+					GetD3D11COM<ID3D11VertexShader**>(&vsShader.api.d3d11.shader)
+				);
+
+				if (FAILED(result))
+				{
+					return false;
+				}
+
+				return true;
+			}
+
+			bool CreateVertexLayout(const CGRenderDevice& device, CGShader& vShader, CGVertexLayout& layout)
+			{
+				const auto GetAttributeName = [](const CGVertexAttribute attribute)
+				{
+					switch (attribute)
+					{
+						case CGVertexAttribute::None:	  break;
+						case CGVertexAttribute::Position: return "POSITION";
+						case CGVertexAttribute::Color:	  return "COLOR";
+						case CGVertexAttribute::Normal:   return "NORMAL";
+						case CGVertexAttribute::TexCoord: return "TEXCOORD";
+					}
+
+					return "NONE";
+				};
+
+				const auto GetDXGIFormat = [](const CGVertexFormat format)
+				{
+					switch (format)
+					{
+						case CGVertexFormat::None:	 break;
+						case CGVertexFormat::UInt:	 return DXGI_FORMAT_R32_UINT;
+						case CGVertexFormat::UInt2:	 return DXGI_FORMAT_R32G32_UINT;
+						case CGVertexFormat::UInt3:	 return DXGI_FORMAT_R32G32B32_UINT;
+						case CGVertexFormat::UInt4:	 return DXGI_FORMAT_R32G32B32A32_UINT;
+						case CGVertexFormat::Float:  return DXGI_FORMAT_R32_FLOAT;
+						case CGVertexFormat::Float2: return DXGI_FORMAT_R32G32_FLOAT;
+						case CGVertexFormat::Float3: return DXGI_FORMAT_R32G32B32_FLOAT;
+						case CGVertexFormat::Float4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
+					}
+
+					return DXGI_FORMAT_UNKNOWN;
+				};
+
+				const auto dev = GetD3D11COM<ID3D11Device*>(device.api.d3d11.device);
+
+				D3D11_INPUT_ELEMENT_DESC ied[CG_MAX_VERTEX_ELEMENTS] = {};
+
+				for (uint8_t i = 0u; i < layout.count; ++i)
+				{
+					auto& element = layout.elements[i];
+
+					ied[i].SemanticName = GetAttributeName(element.attribute);
+					ied[i].SemanticIndex = 0U;
+					ied[i].Format = GetDXGIFormat(element.format);
+					ied[i].InputSlot = 0U;
+					ied[i].AlignedByteOffset = element.offset;
+					ied[i].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+					ied[i].InstanceDataStepRate = 0U;
+				}
+
+				auto shaderBlob = GetD3D11COM<ID3DBlob*>(vShader.api.d3d11.blob);
+
+				HRESULT result = dev->CreateInputLayout(
+					ied, 
+					layout.count, 
+					shaderBlob->GetBufferPointer(),
+					shaderBlob->GetBufferSize(),
+					GetD3D11COM<ID3D11InputLayout**>(&layout.api.d3d11.layout)
+				);
+
+				shaderBlob->Release();
+				shaderBlob = nullptr;
+
+				if (FAILED(result))
+				{
+					return false;
+				}
+
+				return true;
+			}
+
+			bool CreateVertexBuffer(const CGRenderDevice& device, const CGBufferDesc& vbDesc, CGBuffer& vbBuffer, const void* vbData)
+			{
+				D3D11_BUFFER_DESC desc = {};
+				desc.ByteWidth = vbDesc.size;
+				desc.Usage = D3D11_USAGE_DEFAULT;
+				desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+				desc.CPUAccessFlags = 0U;
+				desc.MiscFlags = 0U;
+				desc.StructureByteStride = 0U;
+
+				D3D11_SUBRESOURCE_DATA data = {};
+				data.pSysMem = vbData;
+				data.SysMemPitch = 0U;
+				data.SysMemSlicePitch = 0U;
+
+				const auto dev = GetD3D11COM<ID3D11Device*>(device.api.d3d11.device);
+				HRESULT result = dev->CreateBuffer(&desc, &data, GetD3D11COM<ID3D11Buffer**>(&vbBuffer.api.d3d11.buffer));
+
+				if (FAILED(result))
+				{
+					return false;
+				}
+
+				vbBuffer.desc = vbDesc;
+
+				return true;
+			}
+
+			bool CreatePixelShader(ID3D11Device* device, ID3DBlob* psBlob, CGShader& psShader)
+			{
+				HRESULT result = device->CreatePixelShader(
+					psBlob->GetBufferPointer(),
+					psBlob->GetBufferSize(),
+					nullptr,
+					GetD3D11COM<ID3D11PixelShader**>(&psShader.api.d3d11.shader)
+				);
+
+				if (FAILED(result))
+				{
+					return false;
+				}
 
 				return true;
 			}
@@ -359,13 +591,253 @@ namespace cg::renderer
 
 				return true;
 			}
+
+			void DestroyResources(CGResourcePool& resourcePool)
+			{
+				{
+					CGBufferPool& bufferPool = resourcePool.bufferPool;
+
+					for (uint8_t i = 0u; i < resourcePool.bufferPool.ibCount; ++i)
+					{
+						void*& indexBuffer = resourcePool.bufferPool.indexBuffers[i].api.d3d11.buffer;
+						if (indexBuffer)
+						{
+							GetD3D11COM<ID3D11Buffer*>(indexBuffer)->Release();
+							indexBuffer = nullptr;
+						}
+					}
+
+					for (uint8_t i = 0u; i < resourcePool.bufferPool.vbCount; ++i)
+					{
+						void*& vertexBuffer = resourcePool.bufferPool.vertexBuffers[i].api.d3d11.buffer;
+						if (vertexBuffer)
+						{
+							GetD3D11COM<ID3D11Buffer*>(vertexBuffer)->Release();
+							vertexBuffer = nullptr;
+						}
+					}
+
+					for (uint8_t i = 0u; i < bufferPool.vlCount; ++i)
+					{
+						void*& vertexLayout = bufferPool.vertexLayouts[i].api.d3d11.layout;
+						if (vertexLayout)
+						{
+							GetD3D11COM<ID3D11InputLayout*>(vertexLayout)->Release();
+							vertexLayout = nullptr;
+						}
+					}
+				}
+
+				{
+					CGShaderPool& shaderPool = resourcePool.shaderPool;
+
+					for (uint8_t i = 0u; i < shaderPool.fsCount; ++i)
+					{
+						void*& fShader = shaderPool.fragmentShaders[i].api.d3d11.shader;
+
+						GetD3D11COM<ID3D11PixelShader*>(fShader)->Release();
+						fShader = nullptr;
+					}
+
+					for (uint8_t i = 0u; i < shaderPool.vsCount; ++i)
+					{
+						void*& vShader = shaderPool.vertexShaders[i].api.d3d11.shader;
+
+						GetD3D11COM<ID3D11VertexShader*>(vShader)->Release();
+						vShader = nullptr;
+					}
+				}
+			}
+		}
+
+		namespace RenderOps
+		{
+			static void Draw(ID3D11DeviceContext* ctx, const UINT count, const UINT start);
 		}
 
 		namespace ContextOps
 		{
+			static void OMSetClearView(ID3D11DeviceContext* ctx, ID3D11RenderTargetView* rtv, CGClearFlags clearFlags, float r, float g, float b, float a);
+			static void RSSetViewport(ID3D11DeviceContext* ctx, const D3D11_VIEWPORT& viewport);
+			static void IASetVertexBuffer(ID3D11DeviceContext* ctx, ID3D11InputLayout* vLayout, ID3D11Buffer* vBuffer, const UINT stride, const UINT offset);
+			static void VSSetShader(ID3D11DeviceContext* ctx, ID3D11VertexShader* vShader);
+			static void PSSetShader(ID3D11DeviceContext* ctx, ID3D11PixelShader* pShader);
+
+			void OMSetClearView(ID3D11DeviceContext* ctx, ID3D11RenderTargetView* rtv, CGClearFlags clearFlags, const float r, const float g, const float b, const float a)
+			{
+				if (!ctx || !rtv)
+				{
+					return;
+				}
+
+				ctx->OMSetRenderTargets(1U, &rtv, nullptr);
+
+				const FLOAT rgba[4] = { r, g, b, a };
+				ctx->ClearRenderTargetView(rtv, rgba);
+			}
+
+			void RSSetViewport(ID3D11DeviceContext* ctx, const D3D11_VIEWPORT& viewport)
+			{
+				if (!ctx)
+				{
+					return;
+				}
+
+				ctx->RSSetViewports(1, &viewport);
+			}
+
+			void IASetVertexBuffer(ID3D11DeviceContext* ctx, ID3D11InputLayout* vLayout, ID3D11Buffer* vBuffer, const UINT stride, const UINT offset)
+			{
+				if (!ctx || !vLayout || !vBuffer)
+				{
+					return;
+				}
+
+				ctx->IASetInputLayout(vLayout);
+
+				ctx->IASetVertexBuffers(0U, 1U, &vBuffer, &stride, &offset);
+
+				ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			}
+
+			void VSSetShader(ID3D11DeviceContext* ctx, ID3D11VertexShader* vShader)
+			{
+				if (!ctx || !vShader)
+				{
+					return;
+				}
+
+				ctx->VSSetShader(vShader, nullptr, 0U);
+			}
+
+			void PSSetShader(ID3D11DeviceContext* ctx, ID3D11PixelShader* pShader)
+			{
+				if (!ctx || !pShader)
+				{
+					return;
+				}
+
+				ctx->PSSetShader(pShader, nullptr, 0U);
+			}
+
+			bool CreateViewport(const int32_t width, const int32_t height, CGViewport& viewport)
+			{
+				viewport.width = static_cast<float>(width);
+				viewport.height = static_cast<float>(height);
+
+				return true;
+			}
+
+			void ExecuteRenderCommands(const CGRenderContext& context, const CGResourcePool& resourcePool)
+			{
+				if (resourcePool.commandPool.count > CG_MAX_RENDER_COMMANDS)
+				{
+					return;
+				}
+
+				const CGBufferPool& bufferPool = resourcePool.bufferPool;
+				const CGShaderPool& shaderPool = resourcePool.shaderPool;
+
+				for (uint8_t i = 0u; i < resourcePool.commandPool.count; ++i)
+				{
+					const CGRenderCommand& cmd = resourcePool.commandPool.commands[i];
+
+					switch (cmd.type)
+					{
+						case CGRenderCommandType::None:
+						{
+							break;
+						}
+						case CGRenderCommandType::SetViewClear:
+						{
+							void* renderTargetView = context.api.d3d11.renderTargetViews[cmd.params.setViewClear.view];
+							uint32_t color = cmd.params.setViewClear.color;
+
+							ContextOps::OMSetClearView(
+								GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
+								GetD3D11COM<ID3D11RenderTargetView*>(renderTargetView),
+								cmd.params.setViewClear.clearFlags,
+								((color >> 24) & 0xFF) * CG_ONE_OVER_255,
+								((color >> 16) & 0xFF) * CG_ONE_OVER_255,
+								((color >> 8) & 0xFF) * CG_ONE_OVER_255,
+								(color & 0xFF) * CG_ONE_OVER_255
+							);
+
+							continue;
+						}
+						case CGRenderCommandType::SetViewport:
+						{
+							const CGViewport& viewport = context.api.d3d11.viewports[cmd.params.setViewport.viewport];
+
+							D3D11_VIEWPORT vp = {};
+							vp.Width = viewport.width;
+							vp.Height = viewport.height;
+							vp.MinDepth = viewport.minDepth;
+							vp.MaxDepth = viewport.maxDepth;
+
+							ContextOps::RSSetViewport(
+								GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
+								vp
+							);
+
+							continue;
+						}
+						case CGRenderCommandType::SetVertexBuffer:
+						{
+							const CGVertexLayout& vertexLayout = bufferPool.vertexLayouts[cmd.params.setVertexBuffer.vertexBuffer];
+							const CGBuffer& vertexBuffer = bufferPool.vertexBuffers[cmd.params.setVertexBuffer.vertexBuffer];
+
+							ContextOps::IASetVertexBuffer(
+								GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
+								GetD3D11COM<ID3D11InputLayout*>(vertexLayout.api.d3d11.layout),
+								GetD3D11COM<ID3D11Buffer*>(vertexBuffer.api.d3d11.buffer),
+								vertexBuffer.desc.stride,
+								0U
+							);
+
+							continue;
+						}
+						case CGRenderCommandType::SetVertexShader:
+						{
+							void* vertexShader = shaderPool.vertexShaders[cmd.params.setShader.shader].api.d3d11.shader;
+
+							ContextOps::VSSetShader(
+								GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
+								GetD3D11COM<ID3D11VertexShader*>(vertexShader)
+							);
+
+							continue;
+						}
+						case CGRenderCommandType::SetFragmentShader:
+						{
+							void* pixelShader = shaderPool.fragmentShaders[cmd.params.setShader.shader].api.d3d11.shader;
+
+							ContextOps::PSSetShader(
+								GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
+								GetD3D11COM<ID3D11PixelShader*>(pixelShader)
+							);
+
+							continue;
+						}
+						case CGRenderCommandType::Draw:
+						{
+							RenderOps::Draw(
+								GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
+								cmd.params.draw.count,
+								cmd.params.draw.start
+							);
+
+							continue;
+						}
+					}
+
+					break;
+				}
+			}
+
 			void DestroyContext(CGRenderContext& context)
 			{
-				for (uint8_t i = 0; i < context.api.d3d11.renderTargetViewCount; ++i)
+				for (uint8_t i = 0u; i < context.api.d3d11.renderTargetViewCount; ++i)
 				{
 					void*& renderTargetView = context.api.d3d11.renderTargetViews[i];
 					if (renderTargetView)
@@ -378,7 +850,7 @@ namespace cg::renderer
 				void*& swapchain = context.api.d3d11.swapchain;
 				if (swapchain)
 				{
-					GetD3D11COM<IDXGIAdapter*>(swapchain)->Release();
+					GetD3D11COM<IDXGISwapChain*>(swapchain)->Release();
 					swapchain = nullptr;
 				}
 
@@ -393,60 +865,14 @@ namespace cg::renderer
 
 		namespace RenderOps
 		{
-			static void ClearView(ID3D11DeviceContext* ctx, ID3D11RenderTargetView* rtv, CGClearFlags clearFlags, float r, float g, float b, float a);
-
-			void ExecuteRenderCommands(const CGRenderContext& context, const uint8_t count, const CGRenderCommand commands[])
+			void Draw(ID3D11DeviceContext* ctx, const UINT count, const UINT start)
 			{
-				if (count < 0 || count > CG_MAX_RENDER_COMMANDS)
+				if (!ctx)
 				{
 					return;
 				}
 
-				for (uint8_t i = 0; i < count; ++i)
-				{
-					const CGRenderCommand& command = commands[i];
-
-					switch (command.commandType)
-					{
-						case CGRenderCommandType::None:
-						{
-							break;
-						}
-						case CGRenderCommandType::SetViewClear:
-						{
-							// This may cause unintended behaviour (no bounds check at run-time)
-							void* renderTargetView = context.api.d3d11.renderTargetViews[command.params.setViewClear.view];
-							uint32_t color = command.params.setViewClear.color;
-
-							ClearView(
-								GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
-								GetD3D11COM<ID3D11RenderTargetView*>(renderTargetView),
-								command.params.setViewClear.clearFlags,
-								((color >> 24) & 0xFF) * CG_ONE_OVER_255,
-								((color >> 16) & 0xFF) * CG_ONE_OVER_255,
-								((color >> 8) & 0xFF) * CG_ONE_OVER_255,
-								(color & 0xFF) * CG_ONE_OVER_255
-							);
-
-							continue;
-						}
-					}
-
-					break;
-				}
-			}
-
-			void ClearView(ID3D11DeviceContext* ctx, ID3D11RenderTargetView* rtv, CGClearFlags clearFlags, const float r, const float g, const float b, const float a)
-			{
-				if (!ctx || !rtv)
-				{
-					return;
-				}
-
-				ctx->OMSetRenderTargets(1, &rtv, nullptr);
-
-				const float rgba[4] = { r, g, b, a };
-				ctx->ClearRenderTargetView(rtv, rgba);
+				ctx->Draw(count, start);
 			}
 		}
 
@@ -459,7 +885,7 @@ namespace cg::renderer
 					return;
 				}
 
-				GetD3D11COM<IDXGISwapChain*>(swapchain)->Present(1, 0);
+				GetD3D11COM<IDXGISwapChain*>(swapchain)->Present(1U, 0U);
 			}
 		}
 

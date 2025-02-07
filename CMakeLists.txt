@@ -35,6 +35,7 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} 
     PRIVATE
         d3d11.lib
+        d3dcompiler.lib
         dxgi.lib
         glad
         glfw
