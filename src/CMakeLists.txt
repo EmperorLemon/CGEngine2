@@ -8,8 +8,6 @@ target_sources(${PROJECT_NAME}
 		${PLATFORM}
 		${RENDERER}
 
-		pch.h
-
 		cgengine.h
 		cgengine.cpp
 

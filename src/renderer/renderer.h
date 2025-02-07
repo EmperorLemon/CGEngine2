@@ -184,14 +184,17 @@ namespace cg::renderer
 	{
 		union {
 			struct {
+				CGViewport viewports[CG_MAX_VIEWPORTS];				 // D3D_VIEWPORT
+				void* renderTargetViews[CG_MAX_RENDER_TARGET_VIEWS]; // ID3D11RenderTargetView*
 				void* context;										 // ID3D11DeviceContext*
 				void* swapchain;									 // IDXGISwapChain*
 				void* hwnd;											 // HWND - Handle to a *Win32* window
-				void* renderTargetViews[CG_MAX_RENDER_TARGET_VIEWS]; // ID3D11RenderTargetView*
-				CGViewport viewports[CG_MAX_VIEWPORTS];				 // D3D_VIEWPORT
 				uint8_t renderTargetViewCount;
 				uint8_t viewportCount;
 			} d3d11;
+			struct {
+				void* window;
+			} opengl;
 		} api = {};
 
 		const CGRenderDevice* device = nullptr;
@@ -235,11 +238,13 @@ namespace cg::renderer
 	{
 		union
 		{
-			struct
-			{
-				void* buffer = nullptr; // ID3D11Buffer*
+			struct {
+				void* buffer; // ID3D11Buffer*
 				uint32_t padding[2];
 			} d3d11;
+			struct {
+				uint32_t buffer;
+			} opengl;
 		} api = {};
 
 		CGBufferDesc desc = {};
@@ -256,10 +261,9 @@ namespace cg::renderer
 	{
 		union
 		{
-			struct
-			{
-				void* blob = nullptr;   // ID3DBlob*
-				void* shader = nullptr; // ID3D11<Type>Shader*
+			struct {
+				void* blob;   // ID3DBlob*
+				void* shader; // ID3D11<Type>Shader*
 			} d3d11;
 		} api = {};
 
@@ -274,8 +278,7 @@ namespace cg::renderer
 				CGClearFlags clearFlags;
 				uint8_t view;
 			} setViewClear;
-			struct
-			{
+			struct {
 				uint8_t viewport;
 			} setViewport;
 			struct {
@@ -383,21 +386,10 @@ namespace cg::renderer
 		void Present(const CGRenderer& renderer);
 	}
 
-	namespace OpenGL
-	{
-		//namespace RenderOps
-		//{
-		//	void ClearView(CGClearFlags flags, float r, float g, float b, float a);
-		//	void BindVertexArray(uint32_t vertexArray);
-		//	void DrawElements(int32_t count);
-		//	void UseProgram(uint32_t program);
-		//}
-	}
-
 	namespace D3D11
 	{
 		bool Init(CGRenderFunctions& functions);
-		bool CreateDevice(const bool debug, CGRenderDevice& device, CGRenderContext& context);
+		bool CreateDeviceAndContext(const bool debug, CGRenderDevice& device, CGRenderContext& context);
 		void DestroyDevice(CGRenderDevice& device);
 
 		namespace DeviceOps
@@ -436,69 +428,25 @@ namespace cg::renderer
 		}
 	}
 
+	namespace OpenGL
+	{
+		bool Init(const bool debug, CGRenderFunctions& functions);
+		bool CreateDeviceAndContext(const bool debug, const core::CGWindow& window, CGRenderDevice& device, CGRenderContext& context);
+
+		namespace DeviceOps
+		{
+		}
+
+		namespace ContextOps
+		{
+			void ExecuteRenderCommands(const CGRenderContext& context, const CGResourcePool& resourcePool);
+		}
+
+		namespace FrameOps
+		{
+			void Present(void* window);
+		}
+	}
+
 #pragma endregion
-
-	//inline constexpr int32_t GetDataTypeSize(const CGDataType dataType)
-	//{
-	//	switch (dataType)
-	//	{
-	//	case CGDataType::None:	  return -1;
-	//	case CGDataType::UInt8:   return sizeof(uint8_t);
-	//	case CGDataType::UInt16:  return sizeof(uint16_t);
-	//	case CGDataType::UInt32:  return sizeof(uint32_t);
-	//	case CGDataType::Float:   return sizeof(float);
-	//	case CGDataType::Float2:  return 2 * sizeof(float);
-	//	case CGDataType::Float3:  return 3 * sizeof(float);
-	//	case CGDataType::Float4:  return 4 * sizeof(float);
-	//	}
-
-	//	return -1;
-	//}
-
-	//inline constexpr int32_t GetByteStride(const CGVertexLayout& layout)
-	//{
-	//	int32_t byteStride = 0;
-
-	//	for (uint8_t i = 0; i < layout.elementCount; ++i)
-	//	{
-	//		const int32_t dataSize = GetDataTypeSize(layout.vertexElements[i].dataType);
-	//		byteStride += dataSize;
-	//	}
-
-	//	return byteStride;
-	//}
-
-	//inline constexpr int32_t GetAttributeCount(const CGDataType dataType)
-	//{
-	//	switch (dataType)
-	//	{
-	//	case CGDataType::None:   return -1;
-	//	case CGDataType::UInt8:  return 1;
-	//	case CGDataType::UInt16: return 1;
-	//	case CGDataType::UInt32: return 1;
-	//	case CGDataType::Float:  return 1;
-	//	case CGDataType::Float2: return 2;
-	//	case CGDataType::Float3: return 3;
-	//	case CGDataType::Float4: return 4;
-	//	default: break;
-	//	}
-
-	//	return -1;
-	//}
-
-	//inline constexpr void GetAttributeOffset(CGVertexLayout& layout)
-	//{
-	//	uint32_t offset = 0u;
-
-	//	for (uint8_t i = 0; i < layout.elementCount; ++i)
-	//	{
-	//		const int32_t size = GetDataTypeSize(layout.vertexElements[i].dataType);
-
-	//		if (i > 0)
-	//		{
-	//			offset += static_cast<uint32_t>(size);
-	//			layout.vertexElements[i].offset = offset;
-	//		}
-	//	}
-	//}
 }

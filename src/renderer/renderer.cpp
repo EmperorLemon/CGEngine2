@@ -1,6 +1,5 @@
 #include "renderer.h"
-
-#include "platform/window.h";
+#include "platform/window.h"
 
 // renderer.cpp
 namespace cg::renderer
@@ -42,7 +41,7 @@ namespace cg::renderer
 			}
 			case CGRendererType::OpenGL:
 			{
-				//ProcessOpenGLRenderCommands(renderer);
+				OpenGL::ContextOps::ExecuteRenderCommands(renderer.context, renderer.resourcePool);
 				break;
 			}
 			case CGRendererType::Vulkan:
@@ -123,6 +122,24 @@ namespace cg::renderer
 				}
 				case CGRendererType::OpenGL:
 				{
+					switch (desc.shaderType)
+					{
+						case CGShaderType::None:
+						{
+							return false;
+						}
+						case CGShaderType::Vertex:
+						{
+
+							break;
+						}
+						case CGShaderType::Fragment:
+						{
+
+							break;
+						}
+					}
+
 					break;
 				}
 				case CGRendererType::Vulkan:
@@ -398,6 +415,7 @@ namespace cg::renderer
 				}
 				case CGRendererType::OpenGL:
 				{
+					OpenGL::FrameOps::Present(renderer.context.api.opengl.window);
 					break;
 				}
 				case CGRendererType::Vulkan:

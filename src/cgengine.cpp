@@ -1,5 +1,7 @@
 #include "cgengine.h"
 
+#include <cstdio>
+
 using namespace cg::renderer;
 
 // cgengine.cpp
@@ -13,14 +15,25 @@ namespace cg
 	{
 		m_renderer.type = info.rendererType;
 
-		InitGraphicsAPI(info.rendererType, info.debug, m_renderer.functions);
+		m_renderer.device.debug = info.debug;
 
-		CreateWindow(static_cast<int32_t>(info.resolution.width), static_cast<int32_t>(info.resolution.height), m_window);
+		if (!InitGraphicsAPI(info.rendererType, info.debug, m_renderer.functions))
+		{
+			printf("Init Graphics API failed");
+		}
 
-		SetupGraphicsAPI(info, m_window, m_renderer);
+		if (!CreateWindow(static_cast<int32_t>(info.resolution.width), static_cast<int32_t>(info.resolution.height), m_window))
+		{
+			printf("Create Window failed");
+		}
+
+		if (!SetupGraphicsAPI(info, m_window, m_renderer))
+		{
+			printf("Setup Graphics API failed");
+		}
 	}
 
-	bool InitGraphicsAPI(const CGRendererType rendererType, [[maybe_unused]] const bool debug, CGRenderFunctions& functions)
+	bool InitGraphicsAPI(const CGRendererType rendererType, const bool debug, CGRenderFunctions& functions)
 	{
 		switch (rendererType)
 		{
@@ -38,8 +51,7 @@ namespace cg
 			}
 			case CGRendererType::OpenGL:
 			{
-				//return renderer::OpenGLInit(renderContext, debug);
-				break;
+				return OpenGL::Init(debug, functions);
 			}
 			case CGRendererType::Vulkan:
 			{
@@ -65,7 +77,7 @@ namespace cg
 			}
 			case CGRendererType::Direct3D11:
 			{
-				if (!D3D11::CreateDevice(info.debug, renderer.device, renderer.context))
+				if (!D3D11::CreateDeviceAndContext(info.debug, renderer.device, renderer.context))
 				{
 					return false;
 				}
@@ -106,7 +118,11 @@ namespace cg
 			}
 			case CGRendererType::OpenGL:
 			{
-				//return renderer::ContextOps::CreateOpenGLContext(window.winptr, renderContext, info.debug);
+				if (!OpenGL::CreateDeviceAndContext(info.debug, window, renderer.device, renderer.context))
+				{
+					return false;
+				}
+
 				break;
 			}
 			case CGRendererType::Vulkan:

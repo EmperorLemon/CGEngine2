@@ -99,7 +99,7 @@ void CreatePixelShader(CGRenderer& renderer, CGShader& pShader)
 int main()
 {
 	CGEngineCreateInfo info = {};
-	info.rendererType = CGRendererType::Direct3D11;
+	info.rendererType = CGRendererType::OpenGL;
 	info.resolution.width = WINDOW_WIDTH;
 	info.resolution.height = WINDOW_HEIGHT;
 	info.debug = true;
@@ -119,12 +119,7 @@ int main()
 
 	const CGRenderCommand commands[] = 
 	{ 
-		{ ContextOps::SetViewClear(0u, CG_CLEAR_COLOR, CG_BLUE) },
-		{ ContextOps::SetViewport(0u) },
-		{ ContextOps::SetVertexBuffer(0u) },
-		{ ContextOps::SetVertexShader(0u) },
-		{ ContextOps::SetFragmentShader(0u) },
-		{ RenderOps::Draw(0u, vertexCount, 0u) }
+		{ ContextOps::SetViewClear(0u, CG_CLEAR_COLOR, CG_BLUE) }
 	};
 
 	const int8_t cmdCount = sizeof(commands) / sizeof(commands[0]);
