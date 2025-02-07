@@ -96,14 +96,13 @@ namespace cg::renderer
 	{
 		None = 0u,
 		SetViewClear = 1u,
-		SetViewport = 2u,
-		SetPipelineState = 3u,
-		SetVertexShader = 4u,
-		SetFragmentShader = 5u,
-		SetVertexBuffer = 6u,
-		SetIndexBuffer = 7u,
-		Draw = 8u,
-		DrawIndexed = 9u,
+		SetPipelineState = 2u,
+		SetVertexShader = 3u,
+		SetFragmentShader = 4u,
+		SetVertexBuffer = 5u,
+		SetIndexBuffer = 6u,
+		Draw = 7u,
+		DrawIndexed = 8u,
 	};
 
 	enum CGColor : uint32_t
@@ -112,7 +111,9 @@ namespace cg::renderer
 		CG_WHITE = 0xFFFFFFFF,
 		CG_RED = 0xFF0000FF,
 		CG_GREEN = 0x00FF00FF,
-		CG_BLUE = 0x0000FFFF
+		CG_BLUE = 0x0000FFFF,
+		CG_LIGHT_GRAY = 0x878787FF,
+		CG_DARK_GRAY = 0x242526FF,
 	};
 
 	enum CGClearFlags : uint16_t
@@ -295,11 +296,8 @@ namespace cg::renderer
 				uint32_t color;
 				CGClearFlags clearFlags;
 				uint8_t view;
-			} setViewClear;
-			struct 
-			{
 				uint8_t viewport;
-			} setViewport;
+			} setViewClear;
 			struct
 			{
 				uint32_t program;
@@ -398,8 +396,7 @@ namespace cg::renderer
 	{
 		bool CreateViewport(const core::CGWindow& window, CGRenderer& renderer);
 
-		CGRenderCommand SetViewClear(const uint8_t view, const CGClearFlags flags, const uint32_t color);
-		CGRenderCommand SetViewport(const uint8_t viewport);
+		CGRenderCommand SetViewClear(const uint8_t view, const uint8_t viewport, const CGClearFlags flags, const uint32_t color);
 		CGRenderCommand SetPipelineState(const uint32_t program);
 		CGRenderCommand SetVertexShader(const uint8_t vertexShader);
 		CGRenderCommand SetVertexBuffer(const uint32_t vertexBuffer);
@@ -434,6 +431,7 @@ namespace cg::renderer
 			bool CreateShader(const CGRenderContext& context, const CGShaderDesc& desc, CGShader& shader);
 			bool CreateVertexLayout(const CGRenderDevice& device, CGShader& vShader, CGVertexLayout& vLayout);
 			bool CreateVertexBuffer(const CGRenderDevice& device, const CGBufferDesc& vbDesc, CGBuffer& vBuffer, const void* vbData);
+			bool CreateIndexBuffer(const CGRenderDevice& device, const CGBufferDesc& ibDesc, CGBuffer& iBuffer, const void* ibData);
 			bool CreateDebugInterface(CGRenderDevice& device);
 			void DestroyResources(CGResourcePool& resourcePool);
 		}

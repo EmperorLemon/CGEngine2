@@ -92,8 +92,8 @@ void CreateVertexShader(CGRenderer& renderer, CGShader& vShader)
 {
 	CGShaderDesc vsDesc = {};
 	vsDesc.shaderType = CGShaderType::Vertex;
-	vsDesc.filename = "assets/debug_vs.glsl";
-	vsDesc.entryPoint = nullptr;
+	vsDesc.filename = "assets/debug_vs.hlsl";
+	vsDesc.entryPoint = "VSMain";
 
 	if (!DeviceOps::CreateShader(vsDesc, renderer, vShader))
 	{
@@ -105,8 +105,8 @@ void CreateFragmentShader(CGRenderer& renderer, CGShader& fShader)
 {
 	CGShaderDesc fsDesc = {};
 	fsDesc.shaderType = CGShaderType::Fragment;
-	fsDesc.filename = "assets/debug_fs.glsl";
-	fsDesc.entryPoint = nullptr;
+	fsDesc.filename = "assets/debug_ps.hlsl";
+	fsDesc.entryPoint = "PSMain";
 
 	if (!DeviceOps::CreateShader(fsDesc, renderer, fShader))
 	{
@@ -126,7 +126,7 @@ void CreateShaderProgram(const uint8_t shaderCount, const CGShader shaders[], CG
 int main()
 {
 	CGEngineCreateInfo info = {};
-	info.rendererType = CGRendererType::OpenGL;
+	info.rendererType = CGRendererType::Direct3D11;
 	info.resolution.width = WINDOW_WIDTH;
 	info.resolution.height = WINDOW_HEIGHT;
 	info.debug = true;
@@ -155,9 +155,12 @@ int main()
 
 	const CGRenderCommand commands[] = 
 	{ 
-		{ ContextOps::SetViewClear(0u, CG_CLEAR_COLOR, CG_BLUE) },
+		{ ContextOps::SetViewClear(0u, 0u, CG_CLEAR_COLOR, CG_DARK_GRAY) },
 		{ ContextOps::SetPipelineState(program) },
 		{ ContextOps::SetVertexBuffer(0u) },
+		{ ContextOps::SetIndexBuffer(0u) },
+		{ ContextOps::SetVertexShader(0u) },
+		{ ContextOps::SetFragmentShader(0u) },
 		{ RenderOps::Draw(0u, vertexCount, 0u) }
 	};
 

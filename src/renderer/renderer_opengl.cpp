@@ -461,10 +461,6 @@ namespace cg::renderer::OpenGL
 
 						continue;
 					}
-					case CGRenderCommandType::SetViewport:
-					{
-						continue;
-					}
 					case CGRenderCommandType::SetPipelineState:
 					{
 						UseProgram(cmd.params.setPipelineState.program);

@@ -385,6 +385,23 @@ namespace cg::renderer::D3D11
 			return true;
 		}
 
+		bool CreatePixelShader(ID3D11Device* device, ID3DBlob* psBlob, CGShader& psShader)
+		{
+			HRESULT result = device->CreatePixelShader(
+				psBlob->GetBufferPointer(),
+				psBlob->GetBufferSize(),
+				nullptr,
+				GetD3D11COM<ID3D11PixelShader**>(&psShader.api.d3d11.shader)
+			);
+
+			if (FAILED(result))
+			{
+				return false;
+			}
+
+			return true;
+		}
+
 		bool CreateVertexLayout(const CGRenderDevice& device, CGShader& vShader, CGVertexLayout& vLayout)
 		{
 			const auto GetAttributeName = [](const CGVertexAttribute attribute)
@@ -465,12 +482,9 @@ namespace cg::renderer::D3D11
 			desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 			desc.CPUAccessFlags = 0U;
 			desc.MiscFlags = 0U;
-			desc.StructureByteStride = 0U;
 
 			D3D11_SUBRESOURCE_DATA data = {};
 			data.pSysMem = vbData;
-			data.SysMemPitch = 0U;
-			data.SysMemSlicePitch = 0U;
 
 			const auto dev = GetD3D11COM<ID3D11Device*>(device.api.d3d11.device);
 			HRESULT result = dev->CreateBuffer(&desc, &data, GetD3D11COM<ID3D11Buffer**>(&vBuffer.api.d3d11.buffer));
@@ -483,14 +497,20 @@ namespace cg::renderer::D3D11
 			return true;
 		}
 
-		bool CreatePixelShader(ID3D11Device* device, ID3DBlob* psBlob, CGShader& psShader)
+		bool CreateIndexBuffer(const CGRenderDevice& device, const CGBufferDesc& ibDesc, CGBuffer& iBuffer, const void* ibData)
 		{
-			HRESULT result = device->CreatePixelShader(
-				psBlob->GetBufferPointer(),
-				psBlob->GetBufferSize(),
-				nullptr,
-				GetD3D11COM<ID3D11PixelShader**>(&psShader.api.d3d11.shader)
-			);
+			D3D11_BUFFER_DESC desc = {};
+			desc.ByteWidth = ibDesc.size;
+			desc.Usage = D3D11_USAGE_IMMUTABLE;
+			desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+			desc.CPUAccessFlags = 0U;
+			desc.MiscFlags = 0U;
+
+			D3D11_SUBRESOURCE_DATA data = {};
+			data.pSysMem = ibData;
+
+			const auto dev = GetD3D11COM<ID3D11Device*>(device.api.d3d11.device);
+			HRESULT result = dev->CreateBuffer(&desc, &data, GetD3D11COM<ID3D11Buffer**>(&iBuffer.api.d3d11.buffer));
 
 			if (FAILED(result))
 			{
@@ -627,31 +647,24 @@ namespace cg::renderer::D3D11
 
 	namespace ContextOps
 	{
-		static void OMSetClearView(ID3D11DeviceContext* ctx, ID3D11RenderTargetView* rtv, CGClearFlags clearFlags, float r, float g, float b, float a);
-		static void RSSetViewport(ID3D11DeviceContext* ctx, const D3D11_VIEWPORT& viewport);
+		static void OMSetClearView(ID3D11DeviceContext* ctx, ID3D11RenderTargetView* rtv, const D3D11_VIEWPORT& viewport, const float r, const float g, const float b, const float a);
 		static void IASetVertexBuffer(ID3D11DeviceContext* ctx, ID3D11InputLayout* vLayout, ID3D11Buffer* vBuffer, const UINT stride, const UINT offset);
+		static void IASetIndexBuffer(ID3D11DeviceContext* ctx, ID3D11Buffer* iBuffer, const DXGI_FORMAT format, const UINT offset);
 		static void VSSetShader(ID3D11DeviceContext* ctx, ID3D11VertexShader* vShader);
 		static void PSSetShader(ID3D11DeviceContext* ctx, ID3D11PixelShader* pShader);
 
-		void OMSetClearView(ID3D11DeviceContext* ctx, ID3D11RenderTargetView* rtv, CGClearFlags clearFlags, const float r, const float g, const float b, const float a)
+		void OMSetClearView(ID3D11DeviceContext* ctx, ID3D11RenderTargetView* rtv, const D3D11_VIEWPORT& viewport, const float r, const float g, const float b, const float a)
 		{
 			if (!ctx || !rtv)
 			{
 				return;
 			}
 
+			const FLOAT rgba[4] = { r, g, b, a };
+
 			ctx->OMSetRenderTargets(1U, &rtv, nullptr);
 
-			const FLOAT rgba[4] = { r, g, b, a };
 			ctx->ClearRenderTargetView(rtv, rgba);
-		}
-
-		void RSSetViewport(ID3D11DeviceContext* ctx, const D3D11_VIEWPORT& viewport)
-		{
-			if (!ctx)
-			{
-				return;
-			}
 
 			ctx->RSSetViewports(1, &viewport);
 		}
@@ -668,6 +681,16 @@ namespace cg::renderer::D3D11
 			ctx->IASetVertexBuffers(0U, 1U, &vBuffer, &stride, &offset);
 
 			ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		}
+
+		void IASetIndexBuffer(ID3D11DeviceContext* ctx, ID3D11Buffer* iBuffer, const DXGI_FORMAT format, const UINT offset)
+		{
+			if (!ctx || !iBuffer)
+			{
+				return;
+			}
+
+			ctx->IASetIndexBuffer(iBuffer, format, offset);
 		}
 
 		void VSSetShader(ID3D11DeviceContext* ctx, ID3D11VertexShader* vShader)
@@ -700,11 +723,6 @@ namespace cg::renderer::D3D11
 
 		void ExecuteRenderCommands(const CGRenderContext& context, const CGResourcePool& resourcePool)
 		{
-			if (resourcePool.commandPool.count > CG_MAX_RENDER_COMMANDS)
-			{
-				return;
-			}
-
 			const CGBufferPool& bufferPool = resourcePool.bufferPool;
 			const CGShaderPool& shaderPool = resourcePool.shaderPool;
 
@@ -721,12 +739,19 @@ namespace cg::renderer::D3D11
 					case CGRenderCommandType::SetViewClear:
 					{
 						void* renderTargetView = context.api.d3d11.renderTargetViews[cmd.params.setViewClear.view];
+						const CGViewport& viewport = context.api.d3d11.viewports[cmd.params.setViewClear.viewport];
 						uint32_t color = cmd.params.setViewClear.color;
+
+						D3D11_VIEWPORT _viewport = {};
+						_viewport.Width = viewport.width;
+						_viewport.Height = viewport.height;
+						_viewport.MinDepth = viewport.minDepth;
+						_viewport.MaxDepth = viewport.maxDepth;
 
 						OMSetClearView(
 							GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
 							GetD3D11COM<ID3D11RenderTargetView*>(renderTargetView),
-							cmd.params.setViewClear.clearFlags,
+							_viewport,
 							((color >> 24) & 0xFF) * CG_ONE_OVER_255,
 							((color >> 16) & 0xFF) * CG_ONE_OVER_255,
 							((color >> 8) & 0xFF) * CG_ONE_OVER_255,
@@ -735,21 +760,8 @@ namespace cg::renderer::D3D11
 
 						continue;
 					}
-					case CGRenderCommandType::SetViewport:
+					case CGRenderCommandType::SetPipelineState:
 					{
-						const CGViewport& viewport = context.api.d3d11.viewports[cmd.params.setViewport.viewport];
-
-						D3D11_VIEWPORT vp = {};
-						vp.Width = viewport.width;
-						vp.Height = viewport.height;
-						vp.MinDepth = viewport.minDepth;
-						vp.MaxDepth = viewport.maxDepth;
-
-						RSSetViewport(
-							GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
-							vp
-						);
-
 						continue;
 					}
 					case CGRenderCommandType::SetVertexShader:
@@ -791,6 +803,15 @@ namespace cg::renderer::D3D11
 					}
 					case CGRenderCommandType::SetIndexBuffer:
 					{
+						const CGBuffer& indexBuffer = bufferPool.indexBuffers[cmd.params.setIndexBuffer.buffer];
+
+						IASetIndexBuffer(
+							GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
+							GetD3D11COM<ID3D11Buffer*>(indexBuffer.api.d3d11.buffer),
+							DXGI_FORMAT_R16_UINT,
+							0U
+						);
+
 						continue;
 					}
 					case CGRenderCommandType::Draw:

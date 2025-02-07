@@ -432,24 +432,15 @@ namespace cg::renderer
 			return true;
 		}
 
-		CGRenderCommand SetViewClear(const uint8_t view, const CGClearFlags flags, const uint32_t color)
+		CGRenderCommand SetViewClear(const uint8_t view, const uint8_t viewport, const CGClearFlags flags, const uint32_t color)
 		{
 			CGRenderCommand cmd = {};
 
 			cmd.type = CGRenderCommandType::SetViewClear;
+			cmd.params.setViewClear.view = view;
+			cmd.params.setViewClear.viewport = viewport;
 			cmd.params.setViewClear.color = color;
 			cmd.params.setViewClear.clearFlags = flags;
-			cmd.params.setViewClear.view = view;
-
-			return cmd;
-		}
-
-		CGRenderCommand SetViewport(const uint8_t viewport)
-		{
-			CGRenderCommand cmd = {};
-
-			cmd.type = CGRenderCommandType::SetViewport;
-			cmd.params.setViewport.viewport = viewport;
 
 			return cmd;
 		}
