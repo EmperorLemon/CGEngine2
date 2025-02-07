@@ -7,8 +7,8 @@ namespace cg::io
 {
 	struct CGFile
 	{
-		std::unique_ptr<char[]> data;
-		size_t size;
+		std::unique_ptr<char[]> data = nullptr;
+		size_t size = 0ull;
 	};
 
 	CGFile ReadFile(const char* path);

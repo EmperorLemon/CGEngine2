@@ -4,20 +4,22 @@
 // renderer.cpp
 namespace cg::renderer
 {
-	bool AddRenderCommands(const uint8_t count, const CGRenderCommand commands[], CGCommandPool& commandPool)
+	bool AddRenderCommands(const uint8_t count, const CGRenderCommand commands[], CGRenderer& renderer)
 	{
-		if (count < 1 || commands == nullptr || commandPool.count + count > CG_MAX_RENDER_COMMANDS)
+		CGCommandPool& cmdPool = renderer.resourcePool.commandPool;
+
+		if (count < 1 || commands == nullptr || cmdPool.count + count >= CG_MAX_RENDER_COMMANDS)
 		{
 			return false;
 		}
 
-		uint8_t startIndex = commandPool.count;
+		uint8_t startIndex = cmdPool.count;
 		for (uint8_t i = 0u; i < count; ++i)
 		{
-			commandPool.commands[startIndex + i] = commands[i];
+			cmdPool.commands[startIndex + i] = commands[i];
 		}
 
-		commandPool.count += count;
+		cmdPool.count += count;
 
 		return true;
 	}
@@ -75,11 +77,13 @@ namespace cg::renderer
 		{
 			CGShaderPool& shaderPool = renderer.resourcePool.shaderPool;
 
-			if (shaderPool.vsCount + 1u > CG_MAX_VERTEX_SHADERS ||
-				shaderPool.fsCount + 1u > CG_MAX_FRAGMENT_SHADERS)
+			if (desc.shaderType == CGShaderType::None || 
+				shaderPool.vsCount + 1u >= CG_MAX_VERTEX_SHADERS || shaderPool.fsCount + 1u >= CG_MAX_FRAGMENT_SHADERS)
 			{
 				return false;
 			}
+
+			shader.type = desc.shaderType;
 
 			switch (renderer.type)
 			{
@@ -118,24 +122,27 @@ namespace cg::renderer
 				}
 				case CGRendererType::Direct3D12:
 				{
-					break;
+					return false;
 				}
 				case CGRendererType::OpenGL:
 				{
+					if (!OpenGL::DeviceOps::CreateShader(desc, shader))
+					{
+						return false;
+					}
+
 					switch (desc.shaderType)
 					{
-						case CGShaderType::None:
-						{
-							return false;
-						}
 						case CGShaderType::Vertex:
 						{
-
+							shaderPool.vertexShaders[shaderPool.vsCount] = shader;
+							shaderPool.vsCount++;
 							break;
 						}
 						case CGShaderType::Fragment:
 						{
-
+							shaderPool.fragmentShaders[shaderPool.fsCount] = shader;
+							shaderPool.fsCount++;
 							break;
 						}
 					}
@@ -144,18 +151,62 @@ namespace cg::renderer
 				}
 				case CGRendererType::Vulkan:
 				{
-					break;
+					return false;
 				}
 			}
 
 			return true;
 		}
 
-		bool CreateVertexLayout(const uint8_t count, CGVertexElement elements[], CGRenderer& renderer, CGShader& vShader, CGVertexLayout& vLayout)
+		bool CreateShaderProgram(const uint8_t count, const CGShader shaders[], CGRenderer& renderer, uint32_t& program)
+		{
+			CGShaderPool& shaderPool = renderer.resourcePool.shaderPool;
+
+			if (count < 1 || shaders == nullptr || shaderPool.pCount + count >= CG_MAX_SHADER_PROGRAMS)
+			{
+				return false;
+			}
+
+			switch (renderer.type)
+			{
+				case CGRendererType::None:
+				{
+					return false;
+				}
+				case CGRendererType::Direct3D11:
+				{
+					break;
+				}
+				case CGRendererType::Direct3D12:
+				{
+					return false;
+				}
+				case CGRendererType::OpenGL:
+				{
+					if (!OpenGL::DeviceOps::CreateShaderProgram(count, shaders, program))
+					{
+						return false;
+					}
+
+					shaderPool.programs[shaderPool.pCount] = program;
+					shaderPool.pCount++;
+
+					break;
+				}
+				case CGRendererType::Vulkan:
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool SetupVertexLayout(const uint8_t count, CGVertexElement elements[], CGRenderer& renderer, CGVertexLayout& vLayout)
 		{
 			CGBufferPool& bufferPool = renderer.resourcePool.bufferPool;
 
-			if (count < 1 || elements == nullptr || bufferPool.vlCount + 1 > CG_MAX_VERTEX_LAYOUTS)
+			if (count < 1 || elements == nullptr || bufferPool.vlCount + 1 >= CG_MAX_VERTEX_LAYOUTS)
 			{
 				return false;
 			}
@@ -180,6 +231,13 @@ namespace cg::renderer
 			vLayout.count = count;
 			vLayout.size = size;
 
+			return true;
+		}
+
+		bool CreateVertexLayout(const CGBuffer& vBuffer, CGRenderer& renderer, CGShader& vShader, CGVertexLayout& vLayout)
+		{
+			CGBufferPool& bufferPool = renderer.resourcePool.bufferPool;
+
 			switch (renderer.type)
 			{
 				case CGRendererType::None:
@@ -194,29 +252,36 @@ namespace cg::renderer
 					}
 
 					bufferPool.vertexLayouts[bufferPool.vlCount] = vLayout;
-
 					bufferPool.vlCount++;
 
 					break;
 				}
 				case CGRendererType::Direct3D12:
 				{
-					break;
+					return false;
 				}
 				case CGRendererType::OpenGL:
 				{
+					if (!OpenGL::DeviceOps::CreateVertexArray(vBuffer, vLayout))
+					{
+						return false;
+					}
+
+					bufferPool.vertexLayouts[bufferPool.vlCount] = vLayout;
+					bufferPool.vlCount++;
+
 					break;
 				}
 				case CGRendererType::Vulkan:
 				{
-					break;
+					return false;
 				}
 			}
 
 			return true;
 		}
 
-		bool CreateVertexBuffer(const CGBufferDesc& vbDesc, CGRenderer& renderer, const void* vbData)
+		bool CreateVertexBuffer(const CGBufferDesc& vbDesc, CGRenderer& renderer, CGBuffer& vBuffer, const void* vbData)
 		{
 			CGBufferPool& bufferPool = renderer.resourcePool.bufferPool;
 
@@ -224,6 +289,8 @@ namespace cg::renderer
 			{
 				return false;
 			}
+
+			vBuffer.desc = vbDesc;
 
 			switch (renderer.type)
 			{
@@ -233,29 +300,89 @@ namespace cg::renderer
 				}
 				case CGRendererType::Direct3D11:
 				{
-					CGVertexLayout& vertexLayout = bufferPool.vertexLayouts[bufferPool.vlCount];
-					CGBuffer& vertexBuffer = bufferPool.vertexBuffers[bufferPool.vbCount];
-
-					if (!D3D11::DeviceOps::CreateVertexBuffer(renderer.device, vbDesc, vertexBuffer, vbData))
+					if (!D3D11::DeviceOps::CreateVertexBuffer(renderer.device, vbDesc, vBuffer, vbData))
 					{
 						return false;
 					}
 
+					bufferPool.vertexBuffers[bufferPool.vbCount] = vBuffer;
 					bufferPool.vbCount++;
 
 					break;
 				}
 				case CGRendererType::Direct3D12:
 				{
-					break;
+					return false;
 				}
 				case CGRendererType::OpenGL:
 				{
+					if (!OpenGL::DeviceOps::CreateVertexBuffer(vbDesc, vBuffer, vbData))
+					{
+						return false;
+					}
+
+					bufferPool.vertexBuffers[bufferPool.vbCount] = vBuffer;
+					bufferPool.vbCount++;
+
 					break;
 				}
 				case CGRendererType::Vulkan:
 				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool CreateIndexBuffer(const CGBufferDesc& ibDesc, CGRenderer& renderer, CGBuffer& iBuffer, const void* ibData)
+		{
+			CGBufferPool& bufferPool = renderer.resourcePool.bufferPool;
+
+			if (bufferPool.ibCount + 1u > CG_MAX_INDEX_BUFFERS)
+			{
+				return false;
+			}
+
+			iBuffer.desc = ibDesc;
+
+			switch (renderer.type)
+			{
+				case CGRendererType::None:
+				{
+					return false;
+				}
+				case CGRendererType::Direct3D11:
+				{
+					//if (!D3D11::DeviceOps::CreateIndexBuffer(renderer.device, ibDesc, iBuffer, ibData))
+					//{
+					//	return false;
+					//}
+
+					//bufferPool.indexBuffers[bufferPool.ibCount] = iBuffer;
+					//bufferPool.ibCount++;
+
 					break;
+				}
+				case CGRendererType::Direct3D12:
+				{
+					return false;
+				}
+				case CGRendererType::OpenGL:
+				{
+					if (!OpenGL::DeviceOps::CreateIndexBuffer(ibDesc, iBuffer, ibData))
+					{
+						return false;
+					}
+
+					bufferPool.indexBuffers[bufferPool.ibCount] = iBuffer;
+					bufferPool.ibCount++;
+
+					break;
+				}
+				case CGRendererType::Vulkan:
+				{
+					return false;
 				}
 			}
 
@@ -290,7 +417,7 @@ namespace cg::renderer
 				}
 				case CGRendererType::Direct3D12:
 				{
-					break;
+					return false;
 				}
 				case CGRendererType::OpenGL:
 				{
@@ -298,7 +425,7 @@ namespace cg::renderer
 				}
 				case CGRendererType::Vulkan:
 				{
-					break;
+					return false;
 				}
 			}
 
@@ -327,12 +454,32 @@ namespace cg::renderer
 			return cmd;
 		}
 
+		CGRenderCommand SetPipelineState(const uint32_t program)
+		{
+			CGRenderCommand cmd = {};
+
+			cmd.type = CGRenderCommandType::SetPipelineState;
+			cmd.params.setPipelineState.program = program;
+
+			return cmd;
+		}
+
 		CGRenderCommand SetVertexBuffer(const uint32_t vertexBuffer)
 		{
 			CGRenderCommand cmd = {};
 
 			cmd.type = CGRenderCommandType::SetVertexBuffer;
-			cmd.params.setVertexBuffer.vertexBuffer = vertexBuffer;
+			cmd.params.setVertexBuffer.buffer = vertexBuffer;
+
+			return cmd;
+		}
+
+		CGRenderCommand SetIndexBuffer(const uint32_t indexBuffer)
+		{
+			CGRenderCommand cmd = {};
+
+			cmd.type = CGRenderCommandType::SetIndexBuffer;
+			cmd.params.setIndexBuffer.buffer = indexBuffer;
 
 			return cmd;
 		}
@@ -381,21 +528,38 @@ namespace cg::renderer
 
 			return cmd;
 		}
-
-		CGRenderCommand Submit(const uint8_t view, const uint32_t program)
-		{
-			CGRenderCommand cmd = {};
-
-			cmd.type = CGRenderCommandType::Submit;
-			cmd.params.submit.program = program;
-			cmd.params.submit.view = view;
-
-			return cmd;
-		}
 	}
 
 	namespace FrameOps
 	{
+		void EndFrame(const CGRenderer& renderer)
+		{
+			switch (renderer.type)
+			{
+				case CGRendererType::None:
+				{
+					break;
+				}
+				case CGRendererType::Direct3D11:
+				{
+					break;
+				}
+				case CGRendererType::Direct3D12:
+				{
+					break;
+				}
+				case CGRendererType::OpenGL:
+				{
+					OpenGL::FrameOps::EndFrame(renderer.resourcePool);
+					break;
+				}
+				case CGRendererType::Vulkan:
+				{
+					break;
+				}
+			}
+		}
+
 		void Present(const CGRenderer& renderer)
 		{
 			switch (renderer.type)

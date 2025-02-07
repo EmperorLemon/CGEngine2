@@ -4,7 +4,7 @@
 #include <GLFW/glfw3.h>
 
 #include <cstdio>
-#include <cstring>
+#include <string>
 
 #include "renderer.h"
 #include "platform/window.h"
@@ -294,10 +294,13 @@ namespace cg::renderer::D3D11
 
 		bool CreateShader(const CGRenderContext& context, const CGShaderDesc& desc, CGShader& shader)
 		{
-			shader.type = desc.shaderType;
-
 			ID3DBlob* shaderBlob = nullptr;
 			ID3DBlob* errorBlob = nullptr;
+
+			// too lazy to allocate memory for a wchar_t*
+			std::wstring filename(desc.filename, desc.filename + strlen(desc.filename));
+
+			LPCSTR target = GetShaderTarget(desc.shaderType);
 
 			UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
 
@@ -306,10 +309,8 @@ namespace cg::renderer::D3D11
 				flags |= D3DCOMPILE_DEBUG;
 			}
 
-			LPCSTR target = GetShaderTarget(desc.shaderType);
-
 			HRESULT result = D3DCompileFromFile(
-				desc.filename,					   // .hlsl file
+				filename.c_str(),				   // .hlsl file
 				nullptr,						   // defines
 				D3D_COMPILE_STANDARD_FILE_INCLUDE, // include header
 				desc.entryPoint,
@@ -384,7 +385,7 @@ namespace cg::renderer::D3D11
 			return true;
 		}
 
-		bool CreateVertexLayout(const CGRenderDevice& device, CGShader& vShader, CGVertexLayout& layout)
+		bool CreateVertexLayout(const CGRenderDevice& device, CGShader& vShader, CGVertexLayout& vLayout)
 		{
 			const auto GetAttributeName = [](const CGVertexAttribute attribute)
 			{
@@ -422,9 +423,9 @@ namespace cg::renderer::D3D11
 
 			D3D11_INPUT_ELEMENT_DESC ied[CG_MAX_VERTEX_ELEMENTS] = {};
 
-			for (uint8_t i = 0u; i < layout.count; ++i)
+			for (uint8_t i = 0u; i < vLayout.count; ++i)
 			{
-				auto& element = layout.elements[i];
+				auto& element = vLayout.elements[i];
 
 				ied[i].SemanticName = GetAttributeName(element.attribute);
 				ied[i].SemanticIndex = 0U;
@@ -439,10 +440,10 @@ namespace cg::renderer::D3D11
 
 			HRESULT result = dev->CreateInputLayout(
 				ied, 
-				layout.count, 
+				vLayout.count, 
 				shaderBlob->GetBufferPointer(),
 				shaderBlob->GetBufferSize(),
-				GetD3D11COM<ID3D11InputLayout**>(&layout.api.d3d11.layout)
+				GetD3D11COM<ID3D11InputLayout**>(&vLayout.api.d3d11.layout)
 			);
 
 			shaderBlob->Release();
@@ -456,7 +457,7 @@ namespace cg::renderer::D3D11
 			return true;
 		}
 
-		bool CreateVertexBuffer(const CGRenderDevice& device, const CGBufferDesc& vbDesc, CGBuffer& vbBuffer, const void* vbData)
+		bool CreateVertexBuffer(const CGRenderDevice& device, const CGBufferDesc& vbDesc, CGBuffer& vBuffer, const void* vbData)
 		{
 			D3D11_BUFFER_DESC desc = {};
 			desc.ByteWidth = vbDesc.size;
@@ -472,14 +473,12 @@ namespace cg::renderer::D3D11
 			data.SysMemSlicePitch = 0U;
 
 			const auto dev = GetD3D11COM<ID3D11Device*>(device.api.d3d11.device);
-			HRESULT result = dev->CreateBuffer(&desc, &data, GetD3D11COM<ID3D11Buffer**>(&vbBuffer.api.d3d11.buffer));
+			HRESULT result = dev->CreateBuffer(&desc, &data, GetD3D11COM<ID3D11Buffer**>(&vBuffer.api.d3d11.buffer));
 
 			if (FAILED(result))
 			{
 				return false;
 			}
-
-			vbBuffer.desc = vbDesc;
 
 			return true;
 		}
@@ -753,21 +752,6 @@ namespace cg::renderer::D3D11
 
 						continue;
 					}
-					case CGRenderCommandType::SetVertexBuffer:
-					{
-						const CGVertexLayout& vertexLayout = bufferPool.vertexLayouts[cmd.params.setVertexBuffer.vertexBuffer];
-						const CGBuffer& vertexBuffer = bufferPool.vertexBuffers[cmd.params.setVertexBuffer.vertexBuffer];
-
-						IASetVertexBuffer(
-							GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
-							GetD3D11COM<ID3D11InputLayout*>(vertexLayout.api.d3d11.layout),
-							GetD3D11COM<ID3D11Buffer*>(vertexBuffer.api.d3d11.buffer),
-							vertexBuffer.desc.stride,
-							0U
-						);
-
-						continue;
-					}
 					case CGRenderCommandType::SetVertexShader:
 					{
 						void* vertexShader = shaderPool.vertexShaders[cmd.params.setShader.shader].api.d3d11.shader;
@@ -788,6 +772,25 @@ namespace cg::renderer::D3D11
 							GetD3D11COM<ID3D11PixelShader*>(pixelShader)
 						);
 
+						continue;
+					}
+					case CGRenderCommandType::SetVertexBuffer:
+					{
+						const CGVertexLayout& vertexLayout = bufferPool.vertexLayouts[cmd.params.setVertexBuffer.buffer];
+						const CGBuffer& vertexBuffer = bufferPool.vertexBuffers[cmd.params.setVertexBuffer.buffer];
+
+						IASetVertexBuffer(
+							GetD3D11COM<ID3D11DeviceContext*>(context.api.d3d11.context),
+							GetD3D11COM<ID3D11InputLayout*>(vertexLayout.api.d3d11.layout),
+							GetD3D11COM<ID3D11Buffer*>(vertexBuffer.api.d3d11.buffer),
+							vertexBuffer.desc.stride,
+							0U
+						);
+
+						continue;
+					}
+					case CGRenderCommandType::SetIndexBuffer:
+					{
 						continue;
 					}
 					case CGRenderCommandType::Draw:

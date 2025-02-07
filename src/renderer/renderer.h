@@ -29,12 +29,13 @@ namespace cg::renderer
 	constexpr uint8_t CG_MAX_RENDER_TARGET_VIEWS = 8u;
 	constexpr uint8_t CG_MAX_VIEWPORTS = 8u;
 	constexpr uint8_t CG_MAX_VERTEX_ELEMENTS = 8u;
-	constexpr uint8_t CG_MAX_VERTEX_LAYOUTS = 8u;
+	constexpr uint8_t CG_MAX_VERTEX_LAYOUTS = 32u;
 	constexpr uint8_t CG_MAX_VERTEX_BUFFERS = 128u;
 	constexpr uint8_t CG_MAX_INDEX_BUFFERS = 128u;
+	constexpr uint8_t CG_MAX_VERTEX_ARRAYS = 128u;
 	constexpr uint8_t CG_MAX_VERTEX_SHADERS = 32u;
 	constexpr uint8_t CG_MAX_FRAGMENT_SHADERS = 32u;
-	constexpr uint8_t CG_MAX_SHADER_PROGRAMS = 64u;
+	constexpr uint8_t CG_MAX_SHADER_PROGRAMS = 32u;
 	constexpr uint8_t CG_MAX_RENDER_COMMANDS = 128u;
 
 #pragma endregion
@@ -96,13 +97,13 @@ namespace cg::renderer
 		None = 0u,
 		SetViewClear = 1u,
 		SetViewport = 2u,
-		SetVertexBuffer = 3u,
+		SetPipelineState = 3u,
 		SetVertexShader = 4u,
-		SetIndexBuffer = 5u,
-		SetFragmentShader = 6u,
-		Draw = 7u,
-		DrawIndexed = 8u,
-		Submit = 9u
+		SetFragmentShader = 5u,
+		SetVertexBuffer = 6u,
+		SetIndexBuffer = 7u,
+		Draw = 8u,
+		DrawIndexed = 9u,
 	};
 
 	enum CGColor : uint32_t
@@ -182,8 +183,10 @@ namespace cg::renderer
 	// Handles rendering commands and state
 	struct CGRenderContext
 	{
-		union {
-			struct {
+		union 
+		{
+			struct 
+			{
 				CGViewport viewports[CG_MAX_VIEWPORTS];				 // D3D_VIEWPORT
 				void* renderTargetViews[CG_MAX_RENDER_TARGET_VIEWS]; // ID3D11RenderTargetView*
 				void* context;										 // ID3D11DeviceContext*
@@ -192,7 +195,8 @@ namespace cg::renderer
 				uint8_t renderTargetViewCount;
 				uint8_t viewportCount;
 			} d3d11;
-			struct {
+			struct 
+			{
 				void* window;
 			} opengl;
 		} api = {};
@@ -212,12 +216,17 @@ namespace cg::renderer
 	{
 		CGVertexElement elements[CG_MAX_VERTEX_ELEMENTS] = {};
 
-		union
+		union 
 		{
-			struct {
+			struct 
+			{
 				void* layout;
 				uint32_t padding[2];
 			} d3d11;
+			struct 
+			{
+				uint32_t vao; // Vertex Array Object
+			} opengl;
 		} api = {};
 
 		uint32_t padding[2] = {};
@@ -238,11 +247,13 @@ namespace cg::renderer
 	{
 		union
 		{
-			struct {
+			struct 
+			{
 				void* buffer; // ID3D11Buffer*
 				uint32_t padding[2];
 			} d3d11;
-			struct {
+			struct 
+			{
 				uint32_t buffer;
 			} opengl;
 		} api = {};
@@ -252,19 +263,24 @@ namespace cg::renderer
 
 	struct CGShaderDesc
 	{
-		const wchar_t* filename = nullptr;
+		const char* filename = nullptr;
 		const char* entryPoint = nullptr;
 		CGShaderType shaderType = CGShaderType::None;
 	};
 
 	struct CGShader
 	{
-		union
+		union 
 		{
-			struct {
+			struct 
+			{
 				void* blob;   // ID3DBlob*
 				void* shader; // ID3D11<Type>Shader*
 			} d3d11;
+			struct 
+			{
+				uint32_t shader;
+			} opengl;
 		} api = {};
 
 		CGShaderType type = CGShaderType::None;
@@ -272,33 +288,44 @@ namespace cg::renderer
 
 	struct alignas(16) CGRenderCommand
 	{
-		union {
-			struct {
+		union 
+		{
+			struct 
+			{
 				uint32_t color;
 				CGClearFlags clearFlags;
 				uint8_t view;
 			} setViewClear;
-			struct {
+			struct 
+			{
 				uint8_t viewport;
 			} setViewport;
-			struct {
+			struct
+			{
+				uint32_t program;
+			} setPipelineState;
+			struct 
+			{
 				uint8_t shader;
 			} setShader;
-			struct {
-				uint32_t vertexBuffer;
+			struct 
+			{
+				uint32_t buffer;
 			} setVertexBuffer;
-			struct {
+			struct 
+			{
+				uint32_t buffer;
+			} setIndexBuffer;
+			struct 
+			{
 				uint32_t count;
 				uint32_t start;
 				uint8_t vertexBuffer;
 			} draw;
-			struct {
+			struct 
+			{
 				uint32_t count;
 			} drawIndexed;
-			struct {
-				uint32_t program;
-				uint8_t view;
-			} submit;
 		} params = {};
 
 		CGRenderCommandType type = CGRenderCommandType::None;
@@ -306,24 +333,25 @@ namespace cg::renderer
 
 	struct alignas(16) CGBufferPool
 	{
+		CGVertexLayout vertexLayouts[CG_MAX_VERTEX_LAYOUTS] = {};
 		CGBuffer vertexBuffers[CG_MAX_VERTEX_BUFFERS] = {};
 		CGBuffer indexBuffers[CG_MAX_INDEX_BUFFERS] = {};
 
-		CGVertexLayout vertexLayouts[CG_MAX_VERTEX_LAYOUTS] = {};
-
+		uint32_t vlCount = 0u; // Vertex layout count
 		uint32_t vbCount = 0u; // Vertex buffer count
 		uint32_t ibCount = 0u; // Index buffer count
-		uint32_t vlCount = 0u; // Vertex layout count
-		uint32_t padding = 0u;
 	};
 
 	struct CGShaderPool
 	{
 		CGShader vertexShaders[CG_MAX_VERTEX_SHADERS] = {};
 		CGShader fragmentShaders[CG_MAX_FRAGMENT_SHADERS] = {};
+		uint32_t programs[CG_MAX_SHADER_PROGRAMS] = {};
 
-		uint8_t vsCount = 0u;
-		uint8_t fsCount = 0u;
+		uint16_t padding = 0u;
+		uint8_t vsCount = 0u; // Vertex shader count
+		uint8_t fsCount = 0u; // Fragment shader count
+		uint32_t pCount = 0u; // Program count
 	};
 
 	struct CGCommandPool
@@ -353,14 +381,17 @@ namespace cg::renderer
 	/* ----Function Declarations---- */
 #pragma region Function Declarations
 
-	bool AddRenderCommands(const uint8_t count, const CGRenderCommand commands[], CGCommandPool& commandPool);
+	bool AddRenderCommands(const uint8_t count, const CGRenderCommand commands[], CGRenderer& renderer);
 	void ExecuteRenderCommands(const CGRenderer& renderer);
 
 	namespace DeviceOps
 	{
 		bool CreateShader(const CGShaderDesc& desc, CGRenderer& renderer, CGShader& shader);
-		bool CreateVertexLayout(const uint8_t count, CGVertexElement elements[], CGRenderer& renderer, CGShader& vShader, CGVertexLayout& vLayout);
-		bool CreateVertexBuffer(const CGBufferDesc& vbDesc, CGRenderer& renderer, const void* vbData);
+		bool CreateShaderProgram(const uint8_t count, const CGShader shaders[], CGRenderer& renderer, uint32_t& program);
+		bool SetupVertexLayout(const uint8_t count, CGVertexElement elements[], CGRenderer& renderer, CGVertexLayout& vLayout);
+		bool CreateVertexLayout(const CGBuffer& vBuffer, CGRenderer& renderer, CGShader& vShader, CGVertexLayout& vLayout);
+		bool CreateVertexBuffer(const CGBufferDesc& vbDesc, CGRenderer& renderer, CGBuffer& vBuffer, const void* vbData);
+		bool CreateIndexBuffer(const CGBufferDesc& ibDesc, CGRenderer& renderer, CGBuffer& iBuffer, const void* ibData);
 	}
 
 	namespace ContextOps
@@ -369,8 +400,10 @@ namespace cg::renderer
 
 		CGRenderCommand SetViewClear(const uint8_t view, const CGClearFlags flags, const uint32_t color);
 		CGRenderCommand SetViewport(const uint8_t viewport);
+		CGRenderCommand SetPipelineState(const uint32_t program);
 		CGRenderCommand SetVertexShader(const uint8_t vertexShader);
 		CGRenderCommand SetVertexBuffer(const uint32_t vertexBuffer);
+		CGRenderCommand SetIndexBuffer(const uint32_t indexBuffer);
 		CGRenderCommand SetFragmentShader(const uint8_t fragmentShader);
 	}
 
@@ -378,11 +411,11 @@ namespace cg::renderer
 	{
 		CGRenderCommand Draw(const uint8_t vertexBuffer, const uint32_t count, const uint32_t start);
 		CGRenderCommand DrawIndexed(const uint32_t count);
-		CGRenderCommand Submit(const uint8_t view, const uint32_t program);
 	}
 
 	namespace FrameOps
 	{
+		void EndFrame(const CGRenderer& renderer);
 		void Present(const CGRenderer& renderer);
 	}
 
@@ -399,8 +432,8 @@ namespace cg::renderer
 			bool CreateSwapchain(const core::CGWindow& window, CGRenderContext& context);
 			bool CreateRenderTargetView(const uint8_t view, CGRenderContext& context);
 			bool CreateShader(const CGRenderContext& context, const CGShaderDesc& desc, CGShader& shader);
-			bool CreateVertexLayout(const CGRenderDevice& device, CGShader& vShader, CGVertexLayout& layout);
-			bool CreateVertexBuffer(const CGRenderDevice& device, const CGBufferDesc& vbDesc, CGBuffer& vbBuffer, const void* vbData);
+			bool CreateVertexLayout(const CGRenderDevice& device, CGShader& vShader, CGVertexLayout& vLayout);
+			bool CreateVertexBuffer(const CGRenderDevice& device, const CGBufferDesc& vbDesc, CGBuffer& vBuffer, const void* vbData);
 			bool CreateDebugInterface(CGRenderDevice& device);
 			void DestroyResources(CGResourcePool& resourcePool);
 		}
@@ -435,6 +468,11 @@ namespace cg::renderer
 
 		namespace DeviceOps
 		{
+			bool CreateShader(const CGShaderDesc& desc, CGShader& shader);
+			bool CreateShaderProgram(const uint8_t shaderCount, const CGShader shaders[], uint32_t& program);
+			bool CreateVertexBuffer(const CGBufferDesc& vbDesc, CGBuffer& vBuffer, const void* vbData);
+			bool CreateIndexBuffer(const CGBufferDesc& ibDesc, CGBuffer& iBuffer, const void* ibData);
+			bool CreateVertexArray(const CGBuffer& vBuffer, CGVertexLayout& vLayout);
 		}
 
 		namespace ContextOps
@@ -444,9 +482,11 @@ namespace cg::renderer
 
 		namespace FrameOps
 		{
+			void EndFrame(const CGResourcePool& resourcePool);
 			void Present(void* window);
 		}
 	}
 
 #pragma endregion
+
 }
