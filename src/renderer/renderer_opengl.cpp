@@ -473,9 +473,9 @@ namespace cg::renderer::OpenGL
 					}
 					case CGRenderCommandType::SetVertexBuffer:
 					{
-						const CGBuffer& vertexBuffer = bufferPool.vertexBuffers[cmd.params.setVertexBuffer.buffer];
+						const CGVertexLayout& vLayout = bufferPool.vertexLayouts[cmd.params.setVertexBuffer.buffer];
 
-						BindVertexArray(vertexBuffer.api.opengl.buffer);
+						BindVertexArray(vLayout.api.opengl.vao);
 
 						continue;
 					}
