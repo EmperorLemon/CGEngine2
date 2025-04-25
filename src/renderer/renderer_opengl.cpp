@@ -64,16 +64,16 @@ namespace cg::renderer::OpenGL
 		switch (severity)
 		{
 		case GL_DEBUG_SEVERITY_NOTIFICATION:
-			printf("%s, %s, %s, %d: %s", src_str, type_str, severity_str, id, message);
+			printf("%s, %s, %s, %u: %s", src_str, type_str, severity_str, id, message);
 			break;
 		case GL_DEBUG_SEVERITY_LOW:
-			printf("%s, %s, %s, %d: %s", src_str, type_str, severity_str, id, message);
+			printf("%s, %s, %s, %u: %s", src_str, type_str, severity_str, id, message);
 			break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
-			printf("%s, %s, %s, %d: %s", src_str, type_str, severity_str, id, message);
+			printf("%s, %s, %s, %u: %s", src_str, type_str, severity_str, id, message);
 			break;
 		case GL_DEBUG_SEVERITY_HIGH:
-			printf("%s, %s, %s, %d: %s", src_str, type_str, severity_str, id, message);
+			printf("%s, %s, %s, %u: %s", src_str, type_str, severity_str, id, message);
 			break;
 		default: break;
 		}

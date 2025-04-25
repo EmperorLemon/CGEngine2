@@ -324,7 +324,7 @@ namespace cg::renderer::D3D11
 			{
 				if (errorBlob)
 				{
-					printf(reinterpret_cast<const char*>(errorBlob->GetBufferPointer()));
+					printf("%s\n", reinterpret_cast<const char*>(errorBlob->GetBufferPointer()));
 					errorBlob->Release();
 				}
 
