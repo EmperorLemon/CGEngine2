@@ -18,7 +18,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
 # Dependencies
-find_package(glfw3 CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 
 # Add executable

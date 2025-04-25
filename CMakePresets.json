@@ -58,11 +58,11 @@
         "strategy": "external"
       },
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_TOOLCHAIN_FILE": {
-          "value": "C:/Users/Caleb/vcpkg/scripts/buildsystems/vcpkg.cmake",
-          "type": "FILEPATH"
-        }
+        "CMAKE_BUILD_TYPE": "Debug"
+        //"CMAKE_TOOLCHAIN_FILE": {
+        //  "value": "C:/Users/Caleb/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        //  "type": "FILEPATH"
+        //}
       }
     },
     {
@@ -70,11 +70,11 @@
       "displayName": "Clang x64 Release",
       "inherits": "clang-x64-debug",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_TOOLCHAIN_FILE": {
-          "value": "C:/Users/Caleb/vcpkg/scripts/buildsystems/vcpkg.cmake",
-          "type": "FILEPATH"
-        }
+        "CMAKE_BUILD_TYPE": "Release"
+        //"CMAKE_TOOLCHAIN_FILE": {
+        //  "value": "C:/Users/Caleb/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        //  "type": "FILEPATH"
+        //}
       }
     },
     {
@@ -82,11 +82,11 @@
       "displayName": "MSVC Debug",
       "inherits": "windows-msvc-base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_TOOLCHAIN_FILE": {
-          "value": "C:/Users/Caleb/vcpkg/scripts/buildsystems/vcpkg.cmake",
-          "type": "FILEPATH"
-        }
+        "CMAKE_BUILD_TYPE": "Debug"
+        //"CMAKE_TOOLCHAIN_FILE": {
+        //  "value": "C:/Users/Caleb/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        //  "type": "FILEPATH"
+        //}
       }
     },
     {
@@ -94,11 +94,11 @@
       "displayName": "MSVC Release",
       "inherits": "msvc-debug",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_TOOLCHAIN_FILE": {
-          "value": "C:/Users/Caleb/vcpkg/scripts/buildsystems/vcpkg.cmake",
-          "type": "FILEPATH"
-        }
+        "CMAKE_BUILD_TYPE": "Release"
+        //"CMAKE_TOOLCHAIN_FILE": {
+        //  "value": "C:/Users/Caleb/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        //  "type": "FILEPATH"
+        //}
       }
     },
     {
